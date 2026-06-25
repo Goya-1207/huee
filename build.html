@@ -1,0 +1,2550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>沪屙屙 · 上海地铁找厕所</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --brand: oklch(0.66 0.115 205);
+    --brand-deep: oklch(0.58 0.12 210);
+    --brand-tint: oklch(0.66 0.115 205 / 0.12);
+    --ink-1: oklch(0.27 0.012 260);
+    --ink-2: oklch(0.42 0.012 260);
+    --ink-3: oklch(0.56 0.01 260);
+    --ink-4: oklch(0.68 0.008 260);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "PingFang SC", -apple-system, "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: var(--ink-1);
+  }
+  .stage {
+    min-height: 100vh; display: grid; place-items: center;
+    background: radial-gradient(120% 120% at 50% 0%, #eef2f6 0%, #e4e9ef 60%, #dde3ea 100%);
+    padding: 24px;
+  }
+
+  /* ── app shell ── */
+  .app { position: relative; height: 100%; overflow: hidden; }
+  .scroll {
+    position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden;
+    -webkit-overflow-scrolling: touch; z-index: 2;
+  }
+  .scroll::-webkit-scrollbar { display: none; }
+  .screen-pad { padding: 58px 16px 150px; }
+
+  /* ── animated colorful background (what the glass refracts) ── */
+  .bg {
+    position: absolute; inset: 0; z-index: 0; overflow: hidden;
+    background: linear-gradient(165deg, #eaf5f6 0%, #eef0f8 48%, #f7eef4 100%);
+  }
+  .orb { position: absolute; border-radius: 50%; filter: blur(58px); opacity: 0.5; }
+  .o1 { width: 260px; height: 260px; background: #E3002B; top: -40px; left: -60px; opacity: 0.32; }
+  .o2 { width: 280px; height: 280px; background: #97D700; top: 120px; right: -90px; }
+  .o3 { width: 240px; height: 240px; background: #0085CA; top: 380px; left: -70px; opacity: 0.42; }
+  .o4 { width: 260px; height: 260px; background: #5F259F; bottom: 30px; right: -70px; opacity: 0.34; }
+  .o5 { width: 220px; height: 220px; background: #FCD600; bottom: -40px; left: 40px; opacity: 0.4; }
+
+  /* ── glass primitive ── */
+  .glass {
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    border-radius: 22px;
+    border: 0.5px solid rgba(255,255,255,0.7);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.7), 0 6px 22px rgba(28,38,76,0.10);
+  }
+
+  /* ── brand header ── */
+  .brand { display: flex; align-items: center; gap: 12px; padding: 4px 4px 20px; }
+  .brand-mark {
+    width: 46px; height: 46px; border-radius: 15px; flex-shrink: 0;
+    background: linear-gradient(150deg, var(--brand), var(--brand-deep));
+    color: #fff; display: grid; place-items: center;
+    box-shadow: 0 6px 16px oklch(0.6 0.12 205 / 0.4);
+  }
+  .brand-name { font-size: 26px; font-weight: 800; letter-spacing: 2px; color: var(--ink-1); line-height: 1.1; }
+  .brand-tag { font-size: 12.5px; font-weight: 600; color: var(--ink-3); margin-top: 2px; letter-spacing: 0.5px; white-space: nowrap; }
+
+  /* ── section label ── */
+
+  /* ── route card ── */
+  .route-row {
+    width: 100%; display: flex; align-items: center; gap: 12px;
+    padding: 13px 12px; border: none; background: transparent;
+    border-radius: 16px; text-align: left; cursor: pointer; font-family: inherit;
+  }
+  .route-row:active { background: rgba(0,0,0,0.035); }
+  .route-icon { width: 22px; height: 22px; flex-shrink: 0; display: inline-flex; }
+  .route-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .route-label { font-size: 11.5px; font-weight: 600; color: var(--ink-3); letter-spacing: 0.3px; }
+  .route-station { font-size: 18px; font-weight: 800; color: var(--ink-1); display: flex; align-items: center; gap: 8px; }
+  .route-station.ph { font-size: 15.5px; font-weight: 600; color: var(--ink-4); }
+  .route-chev { color: var(--ink-4); flex-shrink: 0; display: inline-flex; }
+  .route-divider { position: relative; height: 1px; margin: 0 14px 0 52px; background: rgba(60,60,67,0.1); }
+  .route-track { position: absolute; left: -29px; top: -16px; height: 32px; border-left: 2px dotted rgba(60,60,67,0.22); }
+  .swap-btn {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    width: 36px; height: 36px; border-radius: 50%; border: 0.5px solid rgba(0,0,0,0.06);
+    background: rgba(255,255,255,0.9); color: var(--brand); cursor: pointer;
+    display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 3;
+  }
+  .swap-btn:active { transform: translateY(-50%) scale(0.92); }
+  .locate-btn {
+    display: flex; align-items: center; gap: 6px; margin: 6px 8px 6px auto; width: fit-content;
+    padding: 6px 13px; border-radius: 999px; border: none; cursor: pointer; font-family: inherit;
+    background: rgba(120,120,128,0.12); color: var(--ink-2); font-size: 12.5px; font-weight: 600;
+  }
+  .locate-btn.on { color: var(--brand); }
+  .locate-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); }
+  .locate-dot.pulse { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.7); } }
+
+  /* ── segmented control ── */
+  .seg { display: flex; background: rgba(120,120,128,0.12); border-radius: 14px; padding: 4px; gap: 2px; }
+  .seg-item {
+    flex: 1; height: 40px; border: none; background: transparent; border-radius: 11px;
+    position: relative; cursor: pointer; font-family: inherit; font-size: 15px; font-weight: 600;
+    color: var(--ink-2);
+  }
+  .seg-item.on { color: var(--ink-1); }
+  .seg-pill {
+    position: absolute; inset: 0; background: #fff; border-radius: 11px; z-index: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.14), 0 0 0 0.5px rgba(0,0,0,0.04);
+  }
+  .seg-content { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+  /* ── wait meter ── */
+  .wait-readout { display: flex; flex-direction: column; gap: 3px; margin-bottom: 14px; }
+  .wait-big { font-size: 22px; font-weight: 800; }
+  .wait-sub { font-size: 13px; color: var(--ink-3); }
+  .wait-sub b { color: var(--ink-1); }
+  .wait-bar { display: flex; gap: 5px; height: 13px; }
+  .wait-seg {
+    flex: 1; border: none; border-radius: 7px; cursor: pointer; padding: 0;
+    background: rgba(120,120,128,0.16); transition: all 0.18s;
+  }
+  .wait-seg.on { box-shadow: 0 2px 8px rgba(0,0,0,0.16); }
+  .wait-ticks { display: flex; margin-top: 9px; }
+  .wait-ticks span { flex: 1; text-align: center; font-size: 11px; font-weight: 600; color: var(--ink-4); }
+  .wait-ticks span.on { color: var(--ink-1); font-weight: 700; }
+
+  /* ── strategy cards ── */
+  .strat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .strat-card {
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 15px 6px 13px; border: 0.5px solid rgba(255,255,255,0.7); cursor: pointer;
+    border-radius: 20px; position: relative; font-family: inherit; text-align: center;
+    transition: transform 0.12s;
+  }
+  .strat-card:active { transform: scale(0.96); }
+  .strat-icon { color: var(--brand); display: inline-flex; }
+  .strat-label { font-size: 13.5px; font-weight: 700; color: var(--ink-1); }
+  .strat-desc { font-size: 10.5px; color: var(--ink-3); line-height: 1.25; }
+  .strat-card.on {
+    background: linear-gradient(160deg, var(--brand), var(--brand-deep));
+    border-color: transparent; box-shadow: 0 8px 20px oklch(0.6 0.12 205 / 0.4);
+  }
+  .strat-card.on .strat-icon, .strat-card.on .strat-label { color: #fff; }
+  .strat-card.on .strat-desc { color: rgba(255,255,255,0.88); }
+  .strat-tip {
+    position: absolute; top: -7px; right: -5px; font-size: 10px; font-weight: 700; color: #fff;
+    background: oklch(0.7 0.16 35); padding: 2px 7px; border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  }
+
+  /* ── CTA ── */
+  .cta {
+    width: 100%; height: 56px; border-radius: 18px; border: none; cursor: pointer; font-family: inherit;
+    background: linear-gradient(150deg, var(--brand), var(--brand-deep)); color: #fff;
+    font-size: 18px; font-weight: 800; letter-spacing: 1px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 10px 24px oklch(0.6 0.12 205 / 0.42);
+    transition: transform 0.12s;
+  }
+  .cta:active { transform: scale(0.97); }
+
+  /* ── tab bar ── */
+  .tabbar {
+    position: absolute; left: 14px; right: 14px; bottom: 22px; height: 64px; z-index: 40;
+    display: flex; padding: 0 6px; border-radius: 26px;
+    background: rgba(255,255,255,0.62);
+  }
+  .tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; border: none; background: transparent; cursor: pointer; font-family: inherit;
+    color: var(--ink-3); transition: color 0.15s;
+  }
+  .tab.on { color: var(--brand); }
+  .tab-ic { display: inline-flex; }
+  .tab-label { font-size: 11px; font-weight: 600; }
+
+  /* ── sheets ── */
+  .sheet-wrap {
+    position: absolute; inset: 0; z-index: 60; display: flex; flex-direction: column; justify-content: flex-end;
+    background: rgba(18,20,38,0.3); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+    animation: fade 0.2s ease;
+  }
+  @keyframes fade { from { opacity: 0; } }
+  .sheet {
+    background: rgba(252,253,255,0.82);
+    backdrop-filter: blur(34px) saturate(180%); -webkit-backdrop-filter: blur(34px) saturate(180%);
+    border-radius: 30px 30px 0 0; padding: 8px 16px 30px; max-height: 88%;
+    display: flex; flex-direction: column; box-shadow: 0 -12px 44px rgba(0,0,0,0.2);
+    border-top: 0.5px solid rgba(255,255,255,0.8);
+    animation: slideup 0.34s cubic-bezier(0.22,1,0.36,1);
+  }
+  @keyframes slideup { from { transform: translateY(100%); } }
+  .sheet-grab { width: 40px; height: 5px; border-radius: 3px; background: rgba(60,60,67,0.22); margin: 6px auto 12px; }
+  .sheet-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 0 4px 10px; }
+  .sheet-title { font-size: 22px; font-weight: 800; color: var(--ink-1); }
+  .sheet-kicker { font-size: 12.5px; font-weight: 700; color: var(--brand); display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+  .sheet-kicker-ic { display: inline-flex; }
+  .sheet-close { width: 32px; height: 32px; border-radius: 50%; border: none; cursor: pointer; background: rgba(120,120,128,0.16); color: var(--ink-2); display: grid; place-items: center; flex-shrink: 0; }
+  .sheet-body { overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+  .sheet-body::-webkit-scrollbar { display: none; }
+  .sheet-reason { font-size: 14px; color: var(--ink-2); line-height: 1.6; padding: 2px 4px 2px; }
+
+  /* ── toilet card ── */
+  .toilet-card {
+    background: rgba(255,255,255,0.66); border: 0.5px solid rgba(255,255,255,0.7);
+    border-radius: 20px; padding: 15px;
+    box-shadow: 0 2px 10px rgba(28,38,76,0.06);
+  }
+  .toilet-card.primary {
+    background: rgba(255,255,255,0.9); border: 1.5px solid var(--brand);
+    box-shadow: 0 8px 24px oklch(0.66 0.11 205 / 0.22);
+  }
+  .tc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .tc-name { font-size: 17px; font-weight: 800; color: var(--ink-1); display: flex; align-items: center; gap: 8px; }
+  .tc-loc { font-size: 12.5px; color: var(--ink-3); margin-top: 4px; }
+  .tc-walk { display: flex; align-items: center; gap: 5px; flex-shrink: 0; color: var(--ink-2); font-size: 13px; white-space: nowrap; }
+  .tc-walk-ic { color: var(--brand); display: inline-flex; }
+  .tc-walk b { font-size: 18px; color: var(--brand); font-weight: 800; }
+  .tc-stats { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
+  .tc-chip {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600;
+    color: var(--ink-2); background: rgba(120,120,128,0.1); padding: 5px 9px; border-radius: 9px;
+  }
+  .tc-chip b { color: var(--ink-1); }
+  .tc-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .tc-note { font-size: 12px; color: var(--ink-3); margin-top: 11px; padding-top: 11px; border-top: 0.5px dashed rgba(60,60,67,0.18); line-height: 1.5; }
+  .alt-label { font-size: 13px; font-weight: 700; color: var(--ink-3); margin: 8px 4px 0; }
+  .empty-hint { font-size: 14px; color: var(--ink-3); text-align: center; padding: 24px; }
+
+  /* ── picker ── */
+  .picker-search { display: flex; align-items: center; gap: 8px; padding: 11px 14px; margin: 2px 0 12px; border-radius: 14px; }
+  .picker-search input { border: none; background: transparent; outline: none; font-size: 16px; flex: 1; color: var(--ink-1); font-family: inherit; }
+  .picker-list { gap: 0; }
+  .picker-row {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 12px; border: none; background: transparent; cursor: pointer; font-family: inherit;
+    border-bottom: 0.5px solid rgba(60,60,67,0.08); border-radius: 12px;
+  }
+  .picker-row.on { background: var(--brand-tint); }
+  .pr-name { font-size: 17px; font-weight: 600; color: var(--ink-1); display: flex; align-items: center; gap: 8px; }
+  .hub-tag { font-size: 10px; font-weight: 700; color: var(--brand); background: var(--brand-tint); padding: 2px 6px; border-radius: 6px; }
+
+  /* ── wait slider (draggable time axis) ── */
+  .wslider { position: relative; height: 28px; margin: 6px 0 2px; cursor: pointer; touch-action: none; }
+  .wslider-rail { position: absolute; top: 50%; left: 0; right: 0; height: 8px; transform: translateY(-50%); border-radius: 99px; background: rgba(120,120,128,0.18); }
+  .wslider-fill { position: absolute; top: 50%; left: 0; height: 8px; transform: translateY(-50%); border-radius: 99px; }
+  .wslider-snap { position: absolute; top: 50%; width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.9); transform: translate(-50%,-50%); box-shadow: 0 0 0 1px rgba(0,0,0,0.08); pointer-events: none; }
+  .wslider-thumb { position: absolute; top: 50%; width: 26px; height: 26px; border-radius: 50%; background: #fff; border: 3px solid; transform: translate(-50%,-50%); box-shadow: 0 2px 8px rgba(0,0,0,0.22); pointer-events: none; }
+  .wslider-ticks { position: relative; height: 20px; margin-top: 2px; }
+  .wtick { position: absolute; transform: translateX(-50%); top: 0; border: none; background: transparent; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--ink-4); cursor: pointer; white-space: nowrap; padding: 2px 4px; }
+  .wtick.on { color: var(--ink-1); font-weight: 800; }
+
+  /* ── auto strategy plan ── */
+  .autoplan { display: flex; align-items: flex-start; gap: 12px; padding: 13px 15px; border-radius: 18px; background: rgba(255,255,255,0.55); }
+  .autoplan-ic { width: 36px; height: 36px; flex-shrink: 0; border-radius: 11px; display: grid; place-items: center; color: #fff; background: linear-gradient(150deg, var(--brand), var(--brand-deep)); }
+  .autoplan-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .autoplan-label { font-size: 13.5px; font-weight: 800; color: var(--ink-1); }
+  .autoplan-reason { font-size: 12.5px; color: var(--ink-3); line-height: 1.5; }
+
+  /* ── placeholder ── */
+  .ph-mark { width: 84px; height: 84px; border-radius: 26px; display: grid; place-items: center; color: var(--brand); }
+  .soon-pill { font-size: 12px; font-weight: 700; color: var(--brand); background: var(--brand-tint); padding: 7px 16px; border-radius: 999px; }
+
+  /* ── picker: gps card + tabs + line strip ── */
+  .gps-card {
+    display: flex; align-items: center; gap: 14px; padding: 14px 16px; margin: 0 0 14px;
+    border: 1.5px solid var(--brand); background: rgba(255,255,255,0.7);
+    border-radius: 18px; cursor: pointer; font-family: inherit; text-align: left;
+    box-shadow: 0 6px 18px oklch(0.66 0.11 205 / 0.18);
+  }
+  .gps-card:disabled { cursor: default; border-color: rgba(0,0,0,0.06); box-shadow: none; }
+  .gps-card.loading { border-color: rgba(0,0,0,0.06); box-shadow: none; }
+  .gps-radar { position: relative; width: 36px; height: 36px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
+  .gps-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 0 4px var(--brand-tint); position: relative; z-index: 2; }
+  .gps-wave {
+    position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--brand); opacity: 0;
+  }
+  .gps-radar.on .gps-wave { animation: gpsW 1.4s ease-out infinite; }
+  .gps-radar.on .gps-wave.d { animation-delay: 0.7s; }
+  @keyframes gpsW { 0% { transform: scale(0.4); opacity: 0.7; } 100% { transform: scale(1.4); opacity: 0; } }
+  .gps-text { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .gps-label { font-size: 11.5px; font-weight: 600; color: var(--ink-3); letter-spacing: 0.3px; }
+  .gps-station { font-size: 17px; font-weight: 800; color: var(--ink-1); display: flex; align-items: center; gap: 8px; }
+  .gps-card.loading .gps-station { color: var(--ink-3); font-weight: 600; font-size: 15px; }
+  .gps-use {
+    display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;
+    font-size: 13px; font-weight: 700; color: var(--brand);
+    background: var(--brand-tint); padding: 6px 11px; border-radius: 999px;
+  }
+
+  .picker-tabs { display: flex; gap: 6px; background: rgba(120,120,128,0.12); border-radius: 11px; padding: 4px; margin-bottom: 12px; }
+  .pt {
+    flex: 1; height: 34px; border: none; background: transparent; border-radius: 8px;
+    font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--ink-2); cursor: pointer;
+  }
+  .pt.on { background: #fff; color: var(--ink-1); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+
+  /* ── sort row (search default ordering) ── */
+  .sort-row { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 10px; }
+  .sort-head { font-size: 13px; font-weight: 700; color: var(--ink-3); }
+  .sort-toggle { display: flex; gap: 3px; background: rgba(120,120,128,0.12); border-radius: 9px; padding: 3px; }
+  .st-btn { border: none; background: transparent; border-radius: 7px; padding: 5px 12px; font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+  .st-btn.on { background: #fff; color: var(--brand); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+  .st-btn:disabled { opacity: 0.4; }
+  .hot-dot { display: inline-flex; color: oklch(0.72 0.15 50); margin-right: 4px; }
+  .pr-dist { font-size: 12px; font-weight: 700; color: var(--brand); background: var(--brand-tint); padding: 3px 8px; border-radius: 7px; white-space: nowrap; }
+
+  .line-strip {
+    display: flex; flex-wrap: wrap; gap: 7px; padding: 2px 2px 4px; margin: 0 0 12px;
+  }
+  .line-chip {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
+    height: 34px; padding: 0 12px; border-radius: 999px; border: 0.5px solid rgba(0,0,0,0.06);
+    background: rgba(255,255,255,0.7); cursor: pointer; font-family: inherit;
+    font-size: 13px; font-weight: 700;
+  }
+  .line-chip.on { border-color: transparent; box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+  .line-chip.on .lc-dot { background: rgba(255,255,255,0.5) !important; }
+  .lc-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .line-list { padding-top: 2px; }
+  .line-head {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px 10px;
+    border-bottom: 1px solid; font-size: 12.5px; font-weight: 600; color: var(--ink-3);
+    margin-bottom: 4px;
+  }
+  .line-row { position: relative; padding-left: 36px; }
+  .lr-rail { position: absolute; left: 18px; top: 0; bottom: 0; width: 2px; display: flex; flex-direction: column; align-items: center; }
+  .lr-node { width: 10px; height: 10px; border-radius: 50%; background: #fff; border: 2.5px solid; margin-top: 19px; flex-shrink: 0; z-index: 2; }
+  .lr-line { flex: 1; width: 2px; }
+
+  /* ── toilet detail ── */
+  .td-summary {
+    display: flex; flex-direction: column; gap: 10px; padding: 2px 4px 16px;
+    border-bottom: 0.5px solid rgba(60,60,67,0.1); margin-bottom: 16px;
+  }
+  .td-station { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .td-name { font-size: 20px; font-weight: 800; color: var(--ink-1); }
+  .td-walk { display: flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 14px; }
+  .td-walk b { color: var(--brand); font-size: 19px; font-weight: 800; }
+  .td-walk-sub { color: var(--ink-4); font-size: 12.5px; }
+
+  .td-section { margin-bottom: 18px; padding: 0 4px; }
+  .td-label { font-size: 12px; font-weight: 700; letter-spacing: 0.5px; color: var(--ink-3); text-transform: uppercase; margin-bottom: 9px; }
+  .td-row {
+    display: flex; align-items: flex-start; gap: 12px; padding: 11px 12px;
+    background: rgba(255,255,255,0.55); border-radius: 14px; margin-bottom: 6px;
+    border: 0.5px solid rgba(255,255,255,0.7);
+  }
+  .td-ic { width: 22px; height: 22px; color: var(--brand); flex-shrink: 0; margin-top: 1px; display: inline-flex; }
+  .td-row-title { font-size: 15px; font-weight: 700; color: var(--ink-1); }
+  .td-row-sub { font-size: 12.5px; color: var(--ink-3); margin-top: 3px; line-height: 1.5; }
+
+  .td-facility-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .td-facility {
+    display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 4px;
+    background: rgba(255,255,255,0.65); border-radius: 14px; border: 0.5px solid rgba(255,255,255,0.7);
+  }
+  .td-facility.off { opacity: 0.42; }
+  .td-facility-ic { color: var(--brand); }
+  .td-facility.off .td-facility-ic { color: var(--ink-4); }
+  .td-facility-l { font-size: 13.5px; font-weight: 700; color: var(--ink-1); }
+  .td-facility-s { font-size: 11px; color: var(--ink-3); }
+
+  .td-stats-row { display: flex; gap: 8px; }
+  .td-stat {
+    flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 11px 12px;
+    background: rgba(255,255,255,0.55); border-radius: 14px; border: 0.5px solid rgba(255,255,255,0.7);
+  }
+  .td-stat-k { font-size: 12px; font-weight: 700; color: var(--ink-2); display: flex; align-items: center; gap: 5px; }
+  .td-stat-k .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .td-stat-v { font-size: 13.5px; font-weight: 600; color: var(--ink-1); display: flex; align-items: center; gap: 6px; }
+
+  .td-note { font-size: 13px; color: var(--ink-2); line-height: 1.6; padding: 12px 14px; background: rgba(255,236,184,0.4); border-radius: 12px; border-left: 3px solid #ED8B00; }
+
+  /* make toilet card a real button (was div) */
+  button.toilet-card { width: 100%; text-align: left; cursor: pointer; font-family: inherit; }
+  button.toilet-card:active { transform: scale(0.99); }
+</style>
+</head>
+<body>
+  <template id="__bundler_thumbnail" data-bg-color="#eaf2f4">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1200" height="800" fill="#eaf2f4"/>
+      <circle cx="600" cy="360" r="190" fill="#2a9db5"/>
+      <path d="M600 235c0 0 95 105 95 168a95 95 0 0 1-190 0c0-63 95-168 95-168z" fill="#fff"/>
+      <text x="600" y="640" font-family="PingFang SC, sans-serif" font-size="120" font-weight="800" fill="#1f3b44" text-anchor="middle" letter-spacing="8">沪屙屙</text>
+    </svg>
+  </template>
+  <div id="root"></div>
+  <script type="text/babel" data-src="ios-frame.jsx">
+// @ds-adherence-ignore -- omelette starter scaffold (raw elements/hex/px by design)
+
+/* BEGIN USAGE */
+// iOS.jsx — Simplified iOS 26 (Liquid Glass) device frame
+// Based on the iOS 26 UI Kit + Figma status bar spec. No assets, no deps.
+// Exports (to window): IOSDevice, IOSStatusBar, IOSNavBar, IOSGlassPill, IOSList, IOSListRow, IOSKeyboard
+//
+// Usage — wrap your screen content in <IOSDevice> to get the bezel, status bar
+// and home indicator (props: title, dark, keyboard):
+//
+//   <IOSDevice title="Settings">
+//     ...your screen content...
+//   </IOSDevice>
+//   <IOSDevice dark title="Search" keyboard>…</IOSDevice>
+/* END USAGE */
+
+// ─────────────────────────────────────────────────────────────
+// Status bar
+// ─────────────────────────────────────────────────────────────
+function IOSStatusBar({ dark = false, time = '9:41' }) {
+  const c = dark ? '#fff' : '#000';
+  return (
+    <div style={{
+      display: 'flex', gap: 154, alignItems: 'center', justifyContent: 'center',
+      padding: '21px 24px 19px', boxSizing: 'border-box',
+      position: 'relative', zIndex: 20, width: '100%',
+    }}>
+      <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 1.5 }}>
+        <span style={{
+          fontFamily: '-apple-system, "SF Pro", system-ui', fontWeight: 590,
+          fontSize: 17, lineHeight: '22px', color: c,
+        }}>{time}</span>
+      </div>
+      <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, paddingTop: 1, paddingRight: 1 }}>
+        <svg width="19" height="12" viewBox="0 0 19 12">
+          <rect x="0" y="7.5" width="3.2" height="4.5" rx="0.7" fill={c}/>
+          <rect x="4.8" y="5" width="3.2" height="7" rx="0.7" fill={c}/>
+          <rect x="9.6" y="2.5" width="3.2" height="9.5" rx="0.7" fill={c}/>
+          <rect x="14.4" y="0" width="3.2" height="12" rx="0.7" fill={c}/>
+        </svg>
+        <svg width="17" height="12" viewBox="0 0 17 12">
+          <path d="M8.5 3.2C10.8 3.2 12.9 4.1 14.4 5.6L15.5 4.5C13.7 2.7 11.2 1.5 8.5 1.5C5.8 1.5 3.3 2.7 1.5 4.5L2.6 5.6C4.1 4.1 6.2 3.2 8.5 3.2Z" fill={c}/>
+          <path d="M8.5 6.8C9.9 6.8 11.1 7.3 12 8.2L13.1 7.1C11.8 5.9 10.2 5.1 8.5 5.1C6.8 5.1 5.2 5.9 3.9 7.1L5 8.2C5.9 7.3 7.1 6.8 8.5 6.8Z" fill={c}/>
+          <circle cx="8.5" cy="10.5" r="1.5" fill={c}/>
+        </svg>
+        <svg width="27" height="13" viewBox="0 0 27 13">
+          <rect x="0.5" y="0.5" width="23" height="12" rx="3.5" stroke={c} strokeOpacity="0.35" fill="none"/>
+          <rect x="2" y="2" width="20" height="9" rx="2" fill={c}/>
+          <path d="M25 4.5V8.5C25.8 8.2 26.5 7.2 26.5 6.5C26.5 5.8 25.8 4.8 25 4.5Z" fill={c} fillOpacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Liquid glass pill — blur + tint + shine
+// ─────────────────────────────────────────────────────────────
+function IOSGlassPill({ children, dark = false, style = {} }) {
+  return (
+    <div style={{
+      height: 44, minWidth: 44, borderRadius: 9999,
+      position: 'relative', overflow: 'hidden',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: dark
+        ? '0 2px 6px rgba(0,0,0,0.35), 0 6px 16px rgba(0,0,0,0.2)'
+        : '0 1px 3px rgba(0,0,0,0.07), 0 3px 10px rgba(0,0,0,0.06)',
+      ...style,
+    }}>
+      {/* blur + tint */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 9999,
+        backdropFilter: 'blur(12px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+        background: dark ? 'rgba(120,120,128,0.28)' : 'rgba(255,255,255,0.5)',
+      }} />
+      {/* shine */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 9999,
+        boxShadow: dark
+          ? 'inset 1.5px 1.5px 1px rgba(255,255,255,0.15), inset -1px -1px 1px rgba(255,255,255,0.08)'
+          : 'inset 1.5px 1.5px 1px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(255,255,255,0.4)',
+        border: dark ? '0.5px solid rgba(255,255,255,0.15)' : '0.5px solid rgba(0,0,0,0.06)',
+      }} />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', padding: '0 4px' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Navigation bar — glass pills + large title
+// ─────────────────────────────────────────────────────────────
+function IOSNavBar({ title = 'Title', dark = false, trailingIcon = true }) {
+  const muted = dark ? 'rgba(255,255,255,0.6)' : '#404040';
+  const text = dark ? '#fff' : '#000';
+  const pillIcon = (content) => (
+    <IOSGlassPill dark={dark}>
+      <div style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {content}
+      </div>
+    </IOSGlassPill>
+  );
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', gap: 10,
+      paddingTop: 62, paddingBottom: 10, position: 'relative', zIndex: 5,
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 16px',
+      }}>
+        {/* back chevron */}
+        {pillIcon(
+          <svg width="12" height="20" viewBox="0 0 12 20" fill="none" style={{ marginLeft: -1 }}>
+            <path d="M10 2L2 10l8 8" stroke={muted} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+        {/* trailing ellipsis */}
+        {trailingIcon && pillIcon(
+          <svg width="22" height="6" viewBox="0 0 22 6">
+            <circle cx="3" cy="3" r="2.5" fill={muted}/>
+            <circle cx="11" cy="3" r="2.5" fill={muted}/>
+            <circle cx="19" cy="3" r="2.5" fill={muted}/>
+          </svg>
+        )}
+      </div>
+      {/* large title */}
+      <div style={{
+        padding: '0 16px',
+        fontFamily: '-apple-system, system-ui',
+        fontSize: 34, fontWeight: 700, lineHeight: '41px',
+        color: text, letterSpacing: 0.4,
+      }}>{title}</div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Grouped list (inset card, r:26) + row (52px)
+// ─────────────────────────────────────────────────────────────
+function IOSListRow({ title, detail, icon, chevron = true, isLast = false, dark = false }) {
+  const text = dark ? '#fff' : '#000';
+  const sec = dark ? 'rgba(235,235,245,0.6)' : 'rgba(60,60,67,0.6)';
+  const ter = dark ? 'rgba(235,235,245,0.3)' : 'rgba(60,60,67,0.3)';
+  const sep = dark ? 'rgba(84,84,88,0.65)' : 'rgba(60,60,67,0.12)';
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', minHeight: 52,
+      padding: '0 16px', position: 'relative',
+      fontFamily: '-apple-system, system-ui', fontSize: 17,
+      letterSpacing: -0.43,
+    }}>
+      {icon && (
+        <div style={{
+          width: 30, height: 30, borderRadius: 7, background: icon,
+          marginRight: 12, flexShrink: 0,
+        }} />
+      )}
+      <div style={{ flex: 1, color: text }}>{title}</div>
+      {detail && <span style={{ color: sec, marginRight: 6 }}>{detail}</span>}
+      {chevron && (
+        <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0 }}>
+          <path d="M1 1l6 6-6 6" stroke={ter} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )}
+      {!isLast && (
+        <div style={{
+          position: 'absolute', bottom: 0, right: 0,
+          left: icon ? 58 : 16, height: 0.5, background: sep,
+        }} />
+      )}
+    </div>
+  );
+}
+
+function IOSList({ header, children, dark = false }) {
+  const hc = dark ? 'rgba(235,235,245,0.6)' : 'rgba(60,60,67,0.6)';
+  const bg = dark ? '#1C1C1E' : '#fff';
+  return (
+    <div>
+      {header && (
+        <div style={{
+          fontFamily: '-apple-system, system-ui', fontSize: 13,
+          color: hc, textTransform: 'uppercase',
+          padding: '8px 36px 6px', letterSpacing: -0.08,
+        }}>{header}</div>
+      )}
+      <div style={{
+        background: bg, borderRadius: 26,
+        margin: '0 16px', overflow: 'hidden',
+      }}>{children}</div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Device frame
+// ─────────────────────────────────────────────────────────────
+function IOSDevice({
+  children, width = 402, height = 874, dark = false,
+  title, keyboard = false,
+}) {
+  return (
+    <div style={{
+      width, height, borderRadius: 48, overflow: 'hidden',
+      position: 'relative', background: dark ? '#000' : '#F2F2F7',
+      boxShadow: '0 40px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.12)',
+      fontFamily: '-apple-system, system-ui, sans-serif',
+      WebkitFontSmoothing: 'antialiased',
+    }}>
+      {/* dynamic island */}
+      <div style={{
+        position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
+        width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 50,
+      }} />
+      {/* status bar (absolute) */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+        <IOSStatusBar dark={dark} />
+      </div>
+      {/* nav + content */}
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {title !== undefined && <IOSNavBar title={title} dark={dark} />}
+        <div style={{ flex: 1, overflow: 'auto' }}>{children}</div>
+        {keyboard && <IOSKeyboard dark={dark} />}
+      </div>
+      {/* home indicator — always on top */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 60,
+        height: 34, display: 'flex', justifyContent: 'center', alignItems: 'flex-end',
+        paddingBottom: 8, pointerEvents: 'none',
+      }}>
+        <div style={{
+          width: 139, height: 5, borderRadius: 100,
+          background: dark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.25)',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Keyboard — iOS 26 liquid glass
+// ─────────────────────────────────────────────────────────────
+function IOSKeyboard({ dark = false }) {
+  const glyph = dark ? 'rgba(255,255,255,0.7)' : '#595959';
+  const sugg = dark ? 'rgba(255,255,255,0.6)' : '#333';
+  const keyBg = dark ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.85)';
+
+  // special-key icons
+  const icons = {
+    shift: <svg width="19" height="17" viewBox="0 0 19 17"><path d="M9.5 1L1 9.5h4.5V16h8V9.5H18L9.5 1z" fill={glyph}/></svg>,
+    del: <svg width="23" height="17" viewBox="0 0 23 17"><path d="M7 1h13a2 2 0 012 2v11a2 2 0 01-2 2H7l-6-7.5L7 1z" fill="none" stroke={glyph} strokeWidth="1.6" strokeLinejoin="round"/><path d="M10 5l7 7M17 5l-7 7" stroke={glyph} strokeWidth="1.6" strokeLinecap="round"/></svg>,
+    ret: <svg width="20" height="14" viewBox="0 0 20 14"><path d="M18 1v6H4m0 0l4-4M4 7l4 4" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  };
+
+  const key = (content, { w, flex, ret, fs = 25, k } = {}) => (
+    <div key={k} style={{
+      height: 42, borderRadius: 8.5,
+      flex: flex ? 1 : undefined, width: w, minWidth: 0,
+      background: ret ? '#08f' : keyBg,
+      boxShadow: '0 1px 0 rgba(0,0,0,0.075)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: '-apple-system, "SF Compact", system-ui',
+      fontSize: fs, fontWeight: 458, color: ret ? '#fff' : glyph,
+    }}>{content}</div>
+  );
+
+  const row = (keys, pad = 0) => (
+    <div style={{ display: 'flex', gap: 6.5, justifyContent: 'center', padding: `0 ${pad}px` }}>
+      {keys.map(l => key(l, { flex: true, k: l }))}
+    </div>
+  );
+
+  return (
+    <div style={{
+      position: 'relative', zIndex: 15, borderRadius: 27, overflow: 'hidden',
+      padding: '11px 0 2px',
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      boxShadow: dark
+        ? '0 -2px 20px rgba(0,0,0,0.09)'
+        : '0 -1px 6px rgba(0,0,0,0.018), 0 -3px 20px rgba(0,0,0,0.012)',
+    }}>
+      {/* liquid glass bg — same recipe as nav pills */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 27,
+        backdropFilter: 'blur(12px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+        background: dark ? 'rgba(120,120,128,0.14)' : 'rgba(255,255,255,0.25)',
+      }} />
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 27,
+        boxShadow: dark
+          ? 'inset 1.5px 1.5px 1px rgba(255,255,255,0.15)'
+          : 'inset 1.5px 1.5px 1px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(255,255,255,0.4)',
+        border: dark ? '0.5px solid rgba(255,255,255,0.15)' : '0.5px solid rgba(0,0,0,0.06)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* autocorrect bar */}
+      <div style={{
+        display: 'flex', gap: 20, alignItems: 'center',
+        padding: '8px 22px 13px', width: '100%', boxSizing: 'border-box',
+        position: 'relative',
+      }}>
+        {['"The"', 'the', 'to'].map((w, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <div style={{ width: 1, height: 25, background: '#ccc', opacity: 0.3 }} />}
+            <div style={{
+              flex: 1, textAlign: 'center',
+              fontFamily: '-apple-system, system-ui', fontSize: 17,
+              color: sugg, letterSpacing: -0.43, lineHeight: '22px',
+            }}>{w}</div>
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* key layout */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', gap: 13,
+        padding: '0 6.5px', width: '100%', boxSizing: 'border-box',
+        position: 'relative',
+      }}>
+        {row(['q','w','e','r','t','y','u','i','o','p'])}
+        {row(['a','s','d','f','g','h','j','k','l'], 20)}
+        <div style={{ display: 'flex', gap: 14.25, alignItems: 'center' }}>
+          {key(icons.shift, { w: 45, k: 'shift' })}
+          <div style={{ display: 'flex', gap: 6.5, flex: 1 }}>
+            {['z','x','c','v','b','n','m'].map(l => key(l, { flex: true, k: l }))}
+          </div>
+          {key(icons.del, { w: 45, k: 'del' })}
+        </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {key('ABC', { w: 92.25, fs: 18, k: 'abc' })}
+          {key('', { flex: true, k: 'space' })}
+          {key(icons.ret, { w: 92.25, ret: true, k: 'ret' })}
+        </div>
+      </div>
+
+      {/* bottom spacer (emoji+mic area, icons omitted) */}
+      <div style={{ height: 56, width: '100%', position: 'relative' }} />
+    </div>
+  );
+}
+
+Object.assign(window, {
+  IOSDevice, IOSStatusBar, IOSNavBar, IOSGlassPill, IOSList, IOSListRow, IOSKeyboard,
+});
+
+  </script>
+  <script type="text/babel" data-src="data.jsx">
+// ═══ 沪屙屙 合并数据文件（自动拼接，勿手改单条；改 data_N 源后重拼）═══
+
+// ╭─── data_0.jsx ───╮
+// ─── 沪屙屙 数据核心：线路配色 + 数据登记器 ───
+// 各 data_N.jsx 调用 window.__metro.addLine(lineKey, rows) 登记原始爬取数据，
+// 最后由 data_build.jsx 统一构建成 App 使用的 STATIONS / LINES / byId 等。
+
+const LINE_COLORS = {
+  1: '#E3002B', 2: '#97D700', 3: '#FCD600', 4: '#5F259F', 5: '#944D9A',
+  6: '#D9027D', 7: '#ED8B00', 8: '#0085CA', 9: '#71C5E8', 10: '#C9A1CA',
+  11: '#871C2B', 12: '#007A53', 13: '#E5007D', 14: '#827A04', 15: '#BA9A6A',
+  16: '#32D4C8', 17: '#C19658', 18: '#D2B887', pj: '#9AA7C7',
+};
+
+// 选线顺序 + 显示标签（浦江线用「浦」）
+const LINE_ORDER = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,'pj'];
+const LINE_LABEL = { pj: '浦' };
+function lineLabel(n) { return LINE_LABEL[n] != null ? LINE_LABEL[n] : String(n); }
+function lineName(n)  { return n === 'pj' ? '浦江线' : `${n}号线`; }
+
+// 原始数据登记器
+window.__metro = {
+  RAW_LINES: {},
+  addLine(key, rows) { this.RAW_LINES[key] = rows; },
+};
+
+Object.assign(window, { LINE_COLORS, LINE_ORDER, LINE_LABEL, lineLabel, lineName });
+
+// ╰─── end data_0.jsx ───╯
+
+// ╭─── data_1.jsx ───╮
+// 1、2 号线
+window.__metro.addLine(1, [
+  ['富锦路','out',1,'站厅近1号口'],
+  ['友谊西路','out',1,'站厅近2号口'],
+  ['宝安公路','out',1,'站厅近1号口'],
+  ['共富新村','out',1,'站厅近2号口'],
+  ['呼兰路','out',1,'站厅近1号口'],
+  ['通河新村','out',1,'站厅近2号口'],
+  ['共康路','out',1,'站厅近1号口'],
+  ['彭浦新村','out',1,'站厅近2号口'],
+  ['汶水路','out',1,'站厅近1号口'],
+  ['上海马戏城','out',1,'站厅近2号口'],
+  ['延长路','out',1,'站厅近1号口'],
+  ['中山北路','out',1,'站厅近2号口'],
+  ['上海火车站','in',1,'往B方向站台车头'],
+  ['汉中路','in',1,'近10号口'],
+  ['新闸路','out',1,'站厅近2号口'],
+  ['人民广场','in',1,'往A方向站台车头'],
+  ['黄陂南路','out',1,'站厅近4号口'],
+  ['陕西南路','out',1,'站厅近7号口'],
+  ['常熟路','out',1,'站厅近6号口'],
+  ['衡山路','out',1,'站厅近2号口'],
+  ['徐家汇','out',1,'站厅近17号口'],
+  ['上海体育馆','in',1,'往A方向站台车头'],
+  ['漕宝路','out',1,'站厅近8号口'],
+  ['上海南站','in',1,'往A方向站台车头'],
+  ['锦江乐园','out',1,'站厅近1号口'],
+  ['莲花路','out',1,'站厅近2号口'],
+  ['外环路','out',1,'站厅近1号口'],
+  ['莘庄','outside',0,'北1口公共厕所'],
+]);
+window.__metro.addLine(2, [
+  ['徐泾东','in',1,'往B方向站台车尾'],
+  ['虹桥火车站','in',1,'2号线往A方向站台车头'],
+  ['虹桥2号航站楼','outside',1,'机场航站楼公共厕所'],
+  ['淞虹路','out',1,'站厅近3号口'],
+  ['北新泾','out',1,'站厅近1号口'],
+  ['威宁路','out',1,'站厅近2号口'],
+  ['娄山关路','out',1,'站厅近1号口'],
+  ['中山公园','out',1,'北面站厅，近龙之梦通道口'],
+  ['江苏路','out',1,'B1层站厅近5、8号口'],
+  ['静安寺','in',1,'近8、9号口客服中心后方'],
+  ['南京西路','out',1,'站厅服务中心对面'],
+  ['人民广场','in',1,'往A方向站台车头'],
+  ['南京东路','out',1,'站厅北端，近6号口'],
+  ['陆家嘴','in',1,'往A方向站台车头'],
+  ['东昌路','in',1,'往B方向站台车尾'],
+  ['世纪大道','in',1,'往A方向站台车尾、往B方向站台车头'],
+  ['上海科技馆','out',1,'站厅近5号口'],
+  ['世纪公园','out',1,'站厅近4号口'],
+  ['龙阳路','in',1,'近1号换乘通道出口处'],
+  ['张江高科','out',1,'站厅近1号口'],
+  ['金科路','in',1,'往A方向站台车头'],
+  ['广兰路','in',1,'往B方向站台车尾'],
+  ['唐镇','in',1,'往A方向站台车头'],
+  ['创新中路','in',1,'往B方向站台车头'],
+  ['华夏东路','in',1,'往A方向站台车头'],
+  ['川沙','out',1,'站厅近1号口'],
+  ['凌空路','in',1,'往A方向站台车头'],
+  ['远东大道','in',1,'往B方向站台车头'],
+  ['海天三路','in',1,'往A方向站台车头'],
+  ['浦东国际机场','outside',1,'T2航站楼连廊'],
+]);
+
+// ╰─── end data_1.jsx ───╯
+
+// ╭─── data_2.jsx ───╮
+// 3、4 号线
+window.__metro.addLine(3, [
+  ['江杨北路','in',1,'站厅靠近1号口'],
+  ['铁力路','out',1,'近1号口，上楼左转到底'],
+  ['友谊路','in',1,'站厅靠近管理用房'],
+  ['宝杨路','in',1,'站厅靠近管理用房'],
+  ['水产路','in',1,'站厅尽头处，往B方向车头'],
+  ['淞滨路','out',1,'近2号口'],
+  ['张华浜','in',1,'站厅内靠近站房门旁边'],
+  ['淞发路','in',1,'站厅内靠近站房门旁边'],
+  ['长江南路','in',1,'站厅内靠近站房门旁边'],
+  ['殷高西路','in',1,'靠近站厅1号口车控室旁'],
+  ['江湾镇','out',1,'近7号口'],
+  ['大柏树','in',1,'近1号口'],
+  ['赤峰路','outside',0,'4号口外，车站楼下2楼商场内'],
+  ['虹口足球场','in',1,'8号线站台往沈杜公路方向车头处'],
+  ['东宝兴路','both',1,'站厅靠近1、2号口'],
+  ['宝山路','out',0,'站外近2号口（临时厕所）'],
+  ['上海火车站','in',1,'往A方向站台车头'],
+  ['中潭路','out',1,'西厅一楼站厅层'],
+  ['镇坪路','in',1,'站厅近换乘通道'],
+  ['曹杨路','in',1,'站厅中间近6号口'],
+  ['金沙江路','in',1,'站厅中部警务站对面'],
+  ['中山公园','out',1,'北面站厅，近龙之梦通道口'],
+  ['延安西路','in',1,'1楼地面，近2号口',1],
+  ['虹桥路','out',1,'2号口下行无障碍电梯（底层）旁'],
+  ['宜山路','in',1,'至4号线站台厕所'],
+  ['漕溪路','in',1,'近2号口'],
+  ['龙漕路','in',1,'近2号口'],
+  ['石龙路','out',1,'南广场的东北角'],
+  ['上海南站','in',1,'站台往A方向车头、往B方向车尾'],
+]);
+window.__metro.addLine(4, [
+  ['宜山路','in',1,'往A方向站台车头'],
+  ['虹桥路','out',1,'2号口无障碍电梯（底层）旁'],
+  ['延安西路','out',1,'近2号口',1],
+  ['中山公园','out',1,'北面站厅，近龙之梦通道口'],
+  ['金沙江路','in',1,'站厅中部警务站对面'],
+  ['曹杨路','in',1,'站厅中间近6号口'],
+  ['镇坪路','in',1,'站厅近换乘通道'],
+  ['中潭路','out',1,'西厅一楼站厅层'],
+  ['上海火车站','in',1,'往B方向站台车头'],
+  ['宝山路','out',0,'站外近2号口（临时厕所）'],
+  ['海伦路','in',1,'往B方向站台车尾'],
+  ['临平路','outside',1,'1号口外公共厕所'],
+  ['大连路','in',1,'往A方向站台头部'],
+  ['杨树浦路','in',1,'往A方向站台，关闭',1],
+  ['浦东大道','outside',0,'1号口外公共厕所'],
+  ['浦东大道','in',1,'14号线站台往封浜方向车尾'],
+  ['世纪大道','in',1,'6号线往东方体育中心方向车尾、往港城路方向车头'],
+  ['向城路','outside',1,'2号口外公共厕所'],
+  ['蓝村路','in',1,'6号线近站厅2号口处'],
+  ['塘桥','in',1,'往A方向站台车头'],
+  ['南浦大桥','in',1,'往A方向站台车头'],
+  ['西藏南路','in',1,'至8号线往B方向车头'],
+  ['鲁班路','outside',1,'1号口外公共厕所'],
+  ['大木桥路','out',1,'近12号线6号口'],
+  ['东安路','in',1,'往B方向站台车尾'],
+  ['上海体育场','outside',1,'2号口外公共厕所'],
+  ['上海体育馆','in',1,'往A方向站台车头'],
+]);
+
+// ╰─── end data_2.jsx ───╯
+
+// ╭─── data_3.jsx ───╮
+// 5、6 号线
+window.__metro.addLine(5, [
+  ['闵行开发区','out',1,'2号口外'],
+  ['文井路','out',1,'1号口外'],
+  ['华宁路','outside',0,'1号口外公共厕所'],
+  ['金平路','outside',0,'1号口外公共厕所'],
+  ['奉贤新城','in',1,'往C方向车头'],
+  ['金海湖','in',1,'往B方向车头'],
+  ['望园路','in',1,'往C方向车头'],
+  ['环城东路','in',1,'往C方向车头'],
+  ['奉浦大道','outside',1,'1号口外公共厕所'],
+  ['萧塘','out',1,'近1号口，萧塘附属楼3楼公共区域'],
+  ['西渡','outside',0,'3号口外公共厕所'],
+  ['江川路','outside',0,'1号口外公共厕所'],
+  ['东川路','outside',0,'4号口外公共厕所'],
+  ['剑川路','outside',0,'1号口外公共厕所'],
+  ['北桥','outside',0,'2号口外公共厕所'],
+  ['颛桥','outside',0,'2号口外公共厕所'],
+  ['银都路','outside',0,'2号口外公共厕所'],
+  ['春申路','outside',0,'1号口外公共厕所'],
+  ['莘庄','outside',0,'北1口公共厕所'],
+]);
+window.__metro.addLine(6, [
+  ['东方体育中心','in',1,'11号线往A方向站台车头、往B方向站台车尾'],
+  ['灵岩南路','out',1,'2号口站厅'],
+  ['上南路','in',1,'2号口站厅客服中心旁'],
+  ['华夏西路','out',1,'2号口站厅'],
+  ['高青路','out',1,'2号口站厅'],
+  ['东明路','out',1,'2号口站厅'],
+  ['高科西路','out',1,'4号口站厅'],
+  ['临沂新村','in',1,'往B方向站台车尾'],
+  ['上海儿童医学中心','in',1,'往A方向站台车头'],
+  ['蓝村路','in',1,'近站厅3号口处'],
+  ['浦电路','in',1,'男厕往B方向车尾、女厕往A方向车头'],
+  ['世纪大道','in',1,'往A方向站台车尾，往B方向站台车头'],
+  ['源深体育中心','out',1,'2号口处'],
+  ['民生路','in',1,'18号线往A方向站台车尾'],
+  ['北洋泾路','out',1,'近站厅1号口处'],
+  ['德平路','in',1,'近站厅1号口处'],
+  ['云山路','out',1,'近站厅2号口处'],
+  ['金桥路','out',1,'近3号口无障碍电梯处'],
+  ['博兴路','out',1,'近2号口闸机处'],
+  ['五莲路','in',1,'站厅进出站闸机对面'],
+  ['巨峰路','in',1,'站厅进出站闸机对面'],
+  ['东靖路','in',1,'站厅进出站闸机对面'],
+  ['五洲大道','in',1,'站厅进出站闸机对面'],
+  ['洲海路','out',1,'站厅TVM旁通道内'],
+  ['外高桥保税区南','out',1,'站外2号口处下楼'],
+  ['航津路','out',1,'站外2号口处下楼'],
+  ['外高桥保税区北','out',1,'站外2号口处下楼'],
+  ['港城路','out',1,'2号口处'],
+]);
+
+// ╰─── end data_3.jsx ───╯
+
+// ╭─── data_4.jsx ───╮
+// 7、8 号线
+window.__metro.addLine(7, [
+  ['花木路','out',1,'近5号口'],
+  ['龙阳路','in',1,'近换乘通道出口处（改造中）',1],
+  ['芳华路','out',1,'近1号口'],
+  ['锦绣路','out',1,'近2号口'],
+  ['杨高南路','out',1,'近3号口'],
+  ['高科西路','out',1,'4号口站厅'],
+  ['云台路','out',1,'3号口处站厅通道内'],
+  ['耀华路','in',1,'至8号线站台厕所',1],
+  ['长清路','out',1,'近1号口'],
+  ['后滩','out',1,'站厅近4号口'],
+  ['龙华中路','out',1,'近11号口'],
+  ['东安路','out',1,'站厅，近4号口'],
+  ['肇嘉浜路','both',1,'近4号口（站台往A方向车头改造暂停）'],
+  ['常熟路','out',1,'近6号口'],
+  ['静安寺','in',1,'近8、9号口客服中心后方'],
+  ['昌平路','out',1,'近3号口'],
+  ['长寿路','out',1,'近1号口'],
+  ['镇坪路','out',1,'近6号口'],
+  ['岚皋路','out',1,'近3号口'],
+  ['新村路','out',1,'近2号口'],
+  ['大华三路','out',1,'近1号口'],
+  ['行知路','out',1,'近3号口'],
+  ['大场镇','out',1,'近1号口'],
+  ['场中路','out',1,'近3号口'],
+  ['上大路','out',1,'近2号口'],
+  ['南陈路','out',1,'近1号口'],
+  ['上海大学','out',1,'近2号口'],
+  ['祁华路','out',1,'近3号口'],
+  ['顾村公园','out',1,'站厅近1号口'],
+  ['刘行','out',1,'近3号口'],
+  ['潘广路','out',1,'近2号口'],
+  ['罗南新村','out',1,'近1号口'],
+  ['美兰湖','out',1,'近1号口'],
+]);
+window.__metro.addLine(8, [
+  ['沈杜公路','outside',1,'1号口外'],
+  ['联航路','out',1,'2号口站外'],
+  ['江月路','out',1,'2号口站外'],
+  ['浦江镇','out',1,'2号口站外'],
+  ['芦恒路','out',1,'站厅2号口对面'],
+  ['凌兆新村','out',1,'站厅2号口对面'],
+  ['东方体育中心','in',1,'8号线往B方向站台车尾、11号线往B方向站台车尾'],
+  ['杨思','out',1,'站厅近1号口'],
+  ['成山路','in',1,'往B方向站台车尾',1],
+  ['耀华路','in',1,'往A方向站台车尾、往B方向站台车头',1],
+  ['中华艺术宫','in',1,'往A方向站台车尾',1],
+  ['西藏南路','in',1,'往A方向站台车尾'],
+  ['陆家浜路','out',1,'7号口站厅'],
+  ['老西门','in',1,'往A方向站台车头'],
+  ['大世界','in',1,'至14号线站台厕所'],
+  ['人民广场','in',1,'往A方向站台车头'],
+  ['曲阜路','out',0,'近5号口'],
+  ['中兴路','in',1,'往A方向站台车头',1],
+  ['西藏北路','in',1,'往B方向站台车头'],
+  ['虹口足球场','in',1,'往A方向站台车头'],
+  ['曲阳路','in',1,'往B方向站台车尾'],
+  ['四平路','in',1,'往B方向站台车尾'],
+  ['鞍山新村','in',1,'往B方向站台车尾'],
+  ['江浦路','in',1,'往A方向站台车尾女厕、往B方向站台车尾男厕'],
+  ['黄兴路','in',1,'往B方向站台车头'],
+  ['延吉中路','in',1,'往B方向站台车头',1],
+  ['黄兴公园','out',1,'1、2号口售票机旁'],
+  ['翔殷路','in',1,'往A方向站台中部'],
+  ['嫩江路','in',1,'往A方向站台车头'],
+  ['市光路','in',1,'往A方向站台中部',1],
+]);
+
+// ╰─── end data_4.jsx ───╯
+
+// ╭─── data_5.jsx ───╮
+// 9、10 号线
+window.__metro.addLine(9, [
+  ['曹路','in',1,'往B方向站台车头'],
+  ['民雷路','in',1,'往B方向站台车尾'],
+  ['顾唐路','in',1,'往A方向站台车头'],
+  ['金海路','in',1,'往A方向站台车头'],
+  ['金吉路','in',1,'往A方向站台车头'],
+  ['金桥','in',1,'往B方向站台车头'],
+  ['台儿庄路','in',1,'往A方向站台车尾'],
+  ['蓝天路','in',1,'往A方向站台车头、往B方向站台车尾'],
+  ['芳甸路','in',1,'往A方向站台车尾'],
+  ['杨高中路','out',1,'站厅近1号口通道'],
+  ['世纪大道','in',1,'6号线站台两端'],
+  ['商城路','in',1,'站厅近1号口'],
+  ['小南门','in',1,'往B方向站台车头',1],
+  ['陆家浜路','out',1,'站厅近7号口处'],
+  ['马当路','outside',0,'3号口外KFC厕所'],
+  ['打浦桥','outside',0,'站外商场厕所'],
+  ['嘉善路','out',1,'站厅层，近4、6号口'],
+  ['肇嘉浜路','both',1,'往B方向站台车头、近4号口'],
+  ['徐家汇','out',1,'近17号口'],
+  ['宜山路','out',1,'近8号口'],
+  ['桂林路','out',1,'近5号口'],
+  ['漕河泾开发区','in',1,'往A方向站台车尾'],
+  ['合川路','outside',0,'1号口外合川大厦厕所'],
+  ['星中路','in',1,'往A方向站台车头',1],
+  ['七宝','in',1,'往A方向站台车尾',1],
+  ['中春路','in',1,'站厅近客服中心'],
+  ['九亭','out',1,'站厅近2号口'],
+  ['泗泾','outside',0,'站外70米'],
+  ['佘山','outside',0,'站外100米'],
+  ['洞泾','outside',0,'站外50米'],
+  ['松江大学城','outside',0,'站外40米'],
+  ['松江新城','outside',0,'站外50米'],
+  ['松江体育中心','out',1,'站厅近2号口'],
+  ['醉白池','outside',0,'2号口外，马路对面公共厕所'],
+  ['上海松江站','out',1,'站厅1号口'],
+]);
+window.__metro.addLine(10, [
+  ['基隆路','out',1,'地面近2号口'],
+  ['港城路','out',1,'2号口'],
+  ['高桥','out',1,'天桥近1号口'],
+  ['高桥西','out',1,'天桥近2号口'],
+  ['双江路','out',1,'天桥近2号口'],
+  ['国帆路','out',1,'站厅近3号口'],
+  ['新江湾城','out',1,'站厅近2号口'],
+  ['殷高东路','in',1,'往B方向站台车头'],
+  ['三门路','in',1,'往A方向站台车尾'],
+  ['江湾体育场','out',1,'站厅近1号口'],
+  ['五角场','out',1,'站厅近3号口'],
+  ['国权路','out',1,'站厅近3号口'],
+  ['同济大学','out',1,'近站厅4号口'],
+  ['四平路','out',1,'站厅近2号口'],
+  ['邮电新村','out',1,'站厅近2号口'],
+  ['海伦路','out',1,'站厅近7号口'],
+  ['四川北路','out',1,'站厅近2号口'],
+  ['天潼路','in',1,'站厅近3号口'],
+  ['南京东路','out',1,'站厅北端，近6号口'],
+  ['豫园','out',1,'站厅近3号口'],
+  ['老西门','out',1,'站厅近6号口'],
+  ['一大会址·新天地','out',1,'站厅近6号口'],
+  ['陕西南路','out',1,'站厅近7号口'],
+  ['上海图书馆','out',1,'1号口处'],
+  ['交通大学','out',1,'站厅近5号口'],
+  ['虹桥路','out',1,'站厅近4号口'],
+  ['宋园路','out',1,'站厅近1号口'],
+  ['伊犁路','out',1,'站厅近1号口'],
+  ['水城路','out',1,'站厅近3号口'],
+  ['龙溪路','in',1,'站厅近1号口'],
+  ['上海动物园','out',1,'站厅近4号口'],
+  ['虹桥1号航站楼','out',1,'站厅近1号口'],
+  ['虹桥2号航站楼','outside',1,'机场厕所'],
+  ['虹桥火车站','in',1,'2号线往A方向站台车头'],
+  ['龙柏新村','out',1,'站厅近4号口'],
+  ['紫藤路','out',1,'站厅近1号口'],
+  ['航中路','out',1,'站厅近5号口'],
+]);
+
+// ╰─── end data_5.jsx ───╯
+
+// ╭─── data_6.jsx ───╮
+// 11、12 号线
+window.__metro.addLine(11, [
+  ['迪士尼','in',1,'站台往B方向车头'],
+  ['康新公路','in',1,'站厅近1号口'],
+  ['秀沿路','out',1,'站厅近1号口'],
+  ['罗山路','outside',0,'站外近5号口'],
+  ['御桥','out',1,'站厅近7号口'],
+  ['康恒路','in',1,'女厕往A方向车头、男厕往B方向车尾；站厅近1号口'],
+  ['浦三路','out',1,'站厅近2号口'],
+  ['三林东','out',1,'站厅近4号口'],
+  ['三林','out',1,'站厅近2号口'],
+  ['东方体育中心','in',1,'11号线往A方向站台车头、往B方向站台车尾'],
+  ['龙耀路','out',1,'站厅近2号口'],
+  ['云锦路','out',1,'站厅近6号口'],
+  ['龙华','out',1,'至12号线站厅近4号口'],
+  ['上海游泳馆','out',1,'站厅近3号口'],
+  ['徐家汇','both',1,'至1号线、9号线站台站厅厕所'],
+  ['交通大学','out',1,'至10号线站厅近5号口'],
+  ['江苏路','out',1,'B1层站厅近5、8号口'],
+  ['隆德路','out',1,'B1层近2号口'],
+  ['曹杨路','out',1,'B1层站厅近2号口'],
+  ['枫桥路','out',1,'站厅近1号口'],
+  ['真如','in',1,'至14号线站台厕所'],
+  ['上海西站','both',1,'站厅近4号口、15号线站台往B方向车尾'],
+  ['李子园','out',1,'站厅近3号口'],
+  ['祁连山路','out',1,'站厅近3号口'],
+  ['武威路','out',1,'站厅近1号口'],
+  ['桃浦新村','in',1,'往A方向站台车头'],
+  ['南翔','out',1,'地面层近2号口无障碍电梯处'],
+  ['陈翔公路','out',1,'站厅近4号口、近3号口'],
+  ['马陆','out',1,'站厅近1号口'],
+  ['嘉定新城','out',1,'站厅近3号口'],
+  ['白银路','out',1,'地面层近1号口'],
+  ['嘉定西','out',1,'近3号口'],
+  ['嘉定北','outside',0,'站外公共厕所'],
+  ['上海赛车场','in',1,'往B方向站台车尾、往A方向站台车头'],
+  ['昌吉东路','in',1,'往A方向站台车头、往B方向站台车尾'],
+  ['上海汽车城','in',1,'往A方向站台车头、往B方向站台车尾'],
+  ['安亭','out',1,'地面层近1号口'],
+  ['兆丰路','in',1,'站厅近2号口'],
+  ['光明路','in',1,'站厅近1号口'],
+  ['花桥','outside',0,'站外副楼1楼'],
+]);
+window.__metro.addLine(12, [
+  ['金海路','in',1,'至9号线站台厕所'],
+  ['申江路','out',1,'近1号口'],
+  ['金京路','out',1,'近2号口'],
+  ['杨高北路','out',1,'近1号口'],
+  ['巨峰路','in',1,'至6号线站厅进出站闸机对面'],
+  ['东陆路','out',1,'近1号口'],
+  ['复兴岛','out',1,'站厅近2号口'],
+  ['爱国路','out',1,'近2号口'],
+  ['隆昌路','out',1,'站厅近3号口'],
+  ['宁国路','out',1,'近4号口'],
+  ['江浦公园','out',1,'站厅近1号口'],
+  ['大连路','out',1,'近6号口'],
+  ['提篮桥','out',1,'站厅近2号口'],
+  ['国际客运中心','out',1,'站厅近1号口'],
+  ['天潼路','in',1,'至10号线站厅，近3号口'],
+  ['曲阜路','out',1,'近5号口'],
+  ['汉中路','in',1,'近10号口'],
+  ['南京西路','out',1,'站厅服务中心对面'],
+  ['陕西南路','in',1,'往A方向站台车头'],
+  ['嘉善路','out',1,'站厅层，近4、6号口'],
+  ['大木桥路','out',1,'近6号口'],
+  ['龙华中路','in',1,'往B方向站台车尾、往A方向站台中部'],
+  ['龙华','out',1,'站厅近4号口'],
+  ['龙漕路','out',1,'站厅近4号口'],
+  ['漕宝路','out',1,'站厅近8号口'],
+  ['桂林公园','out',1,'站厅近4号口'],
+  ['虹漕路','out',1,'站厅近1号口'],
+  ['虹梅路','out',1,'近7号口无障碍电梯旁'],
+  ['东兰路','in',1,'往B方向站台车尾'],
+  ['顾戴路','out',1,'站厅近2号口'],
+  ['虹莘路','out',1,'站厅近1号口'],
+  ['七莘路','out',1,'站厅近3号口'],
+]);
+
+// ╰─── end data_6.jsx ───╯
+
+// ╭─── data_7.jsx ───╮
+// 13、14、15 号线
+window.__metro.addLine(13, [
+  ['张江路','in',1,'往B方向车尾'],
+  ['学林路','in',1,'往B方向车尾'],
+  ['中科路','in',1,'往B方向车尾'],
+  ['华夏中路','in',1,'近3号口客服中心'],
+  ['莲溪路','in',1,'往B方向车尾'],
+  ['陈春路','in',1,'往B方向车尾'],
+  ['北蔡','in',1,'往B方向车尾'],
+  ['下南路','in',1,'往A方向车头'],
+  ['华鹏路','in',1,'往A方向车尾'],
+  ['东明路','in',1,'往A方向车头'],
+  ['成山路','in',1,'往B方向车头'],
+  ['长清路','out',1,'近7号口'],
+  ['世博大道','out',1,'站厅近3号口'],
+  ['世博会博物馆','out',1,'站厅近3号口'],
+  ['马当路','outside',0,'3号口外KFC厕所'],
+  ['一大会址·新天地','out',1,'站厅近6号口'],
+  ['淮海中路','out',1,'站厅近1号口'],
+  ['南京西路','out',1,'站厅近8号口'],
+  ['自然博物馆','out',1,'站厅近1号口'],
+  ['汉中路','in',1,'站厅近10号口'],
+  ['江宁路','out',1,'站厅近2号口'],
+  ['长寿路','out',1,'站厅近1号口'],
+  ['武宁路','out',1,'站厅近2号口'],
+  ['隆德路','out',1,'B1层近2号口'],
+  ['金沙江路','out',1,'站厅近6号口'],
+  ['大渡河路','out',1,'站厅近1号口'],
+  ['真北路','outside',0,'近4号口，商场通道内'],
+  ['祁连山南路','out',1,'站厅近1号口'],
+  ['丰庄','out',1,'站厅近3号口'],
+  ['金沙江西路','out',1,'站厅近4号口'],
+  ['金运路','out',1,'站厅近8号口'],
+]);
+window.__metro.addLine(14, [
+  ['封浜','in',1,'往B方向车尾'],
+  ['乐秀路','in',1,'往A方向车头'],
+  ['临洮路','in',1,'往A方向车尾'],
+  ['嘉怡路','in',1,'往A方向车头'],
+  ['定边路','in',1,'往A方向车头'],
+  ['真新新村','in',1,'往A方向车头'],
+  ['真光路','in',1,'往A方向车头'],
+  ['铜川路','in',1,'14号线站台往B方向车尾、15号线站台往B方向车尾'],
+  ['真如','in',1,'往B方向车尾'],
+  ['中宁路','in',1,'往B方向车头'],
+  ['曹杨路','in',1,'往B方向车头'],
+  ['武宁路','in',1,'往B方向车头'],
+  ['武定路','in',1,'往A方向车头'],
+  ['静安寺','in',1,'往B方向车尾'],
+  ['一大会址·黄陂南路','in',1,'往B方向车尾'],
+  ['大世界','in',1,'往A方向车头'],
+  ['豫园','in',1,'往B方向车头'],
+  ['陆家嘴','in',1,'往A方向车头'],
+  ['浦东南路','in',1,'往A方向车头'],
+  ['浦东大道','outside',0,'1号口外公共厕所'],
+  ['浦东大道','in',1,'往A方向车尾'],
+  ['源深路','in',1,'往B方向车尾'],
+  ['昌邑路','in',1,'往B方向车头'],
+  ['歇浦路','in',1,'往A方向车尾'],
+  ['云山路','in',1,'往A方向车头'],
+  ['蓝天路','in',1,'至9号线站台厕所'],
+  ['黄杨路','in',1,'往A方向车头'],
+  ['云顺路','in',1,'往A方向车头'],
+  ['浦东足球场','in',1,'往A方向车头'],
+  ['金粤路','in',1,'往A方向车头'],
+  ['桂桥路','in',1,'往A方向车头'],
+]);
+window.__metro.addLine(15, [
+  ['顾村公园','both',1,'站台往B方向车头、站厅近1号口'],
+  ['锦秋路','in',1,'站台往A方向车头'],
+  ['丰翔路','in',1,'站台往A方向车头'],
+  ['南大路','in',1,'站台往B方向车头'],
+  ['祁安路','in',1,'站台往A方向车头'],
+  ['古浪路','in',1,'站台往A方向车头、往B方向车头'],
+  ['武威东路','in',1,'站台往B方向车头'],
+  ['上海西站','both',1,'站厅近4号口、站台往B方向车尾'],
+  ['铜川路','in',1,'15号线站台往B方向车尾、14号线站台往B方向车尾'],
+  ['梅岭北路','in',1,'站台往B方向车头'],
+  ['大渡河路','in',1,'站台往B方向车头'],
+  ['长风公园','in',1,'站台往B方向车尾、往A方向车头'],
+  ['娄山关路','in',1,'站台往A方向车头'],
+  ['红宝石路','in',1,'站台往B方向车头'],
+  ['姚虹路','in',1,'站台往A方向车头'],
+  ['吴中路','in',1,'站台往A方向车头'],
+  ['桂林路','in',1,'站台往A方向车头'],
+  ['桂林公园','in',1,'站台往A方向车头'],
+  ['上海南站','in',1,'站台往B方向车头'],
+  ['华东理工大学','in',1,'站台往B方向车头'],
+  ['罗秀路','in',1,'站台往A方向车头'],
+  ['朱梅路','in',1,'站台往B方向车头'],
+  ['景洪路','in',1,'站台往A方向车头'],
+  ['虹梅南路','in',1,'站台往A方向车头'],
+  ['景西路','in',1,'站台往A方向车头'],
+  ['曙建路','in',1,'站台往B方向车头'],
+  ['双柏路','in',1,'站台往B方向车头'],
+  ['元江路','in',1,'站台往A方向车头'],
+  ['永德路','in',1,'站台往A方向车头'],
+  ['紫竹高新区','both',1,'站台往A方向车头、近站厅2号口'],
+]);
+
+// ╰─── end data_7.jsx ───╯
+
+// ╭─── data_8.jsx ───╮
+// 16、17、18 号线、浦江线
+window.__metro.addLine(16, [
+  ['滴水湖','out',1,'近1号口'],
+  ['临港大道','out',1,'近4号口'],
+  ['书院','in',1,'站厅东端（近1、2号口中间）'],
+  ['惠南东','out',1,'近4号口'],
+  ['惠南','out',1,'近2号口'],
+  ['野生动物园','outside',1,'近1号口地面'],
+  ['新场','outside',1,'近1号口地面'],
+  ['航头东','out',1,'北厅管理用房通道外，近1号口'],
+  ['鹤沙航城','out',1,'近往A方向无障碍电梯旁，近1号口'],
+  ['周浦东','out',1,'近1号口'],
+  ['罗山路','outside',0,'站外近5号口'],
+  ['华夏中路','in',1,'近换乘通道处'],
+  ['龙阳路','in',1,'近1号换乘通道（西侧管理用房）'],
+]);
+window.__metro.addLine(17, [
+  ['虹桥火车站','in',1,'至2号线往A方向站台车头'],
+  ['国家会展中心','in',1,'往B方向车尾'],
+  ['蟠龙路','in',1,'往B方向车尾'],
+  ['徐盈路','in',1,'往A方向车头'],
+  ['徐泾北城','in',1,'往A方向车头'],
+  ['嘉松中路','in',1,'站厅东端通道口'],
+  ['嘉松中路','in',0,'站厅西端通道口'],
+  ['赵巷','in',1,'站厅西端楼梯口'],
+  ['赵巷','in',0,'站厅东端通道口'],
+  ['汇金路','in',1,'往A方向车头、往B方向车头'],
+  ['青浦新城','in',1,'往A方向车头'],
+  ['漕盈路','in',1,'往B方向车头'],
+  ['淀山湖大道','in',1,'往B方向车头'],
+  ['朱家角','in',1,'往B方向车头'],
+  ['东方绿舟','in',1,'往A方向车头'],
+]);
+window.__metro.addLine(18, [
+  ['长江南路','in',1,'往A方向车头'],
+  ['殷高路','in',1,'往A方向车头'],
+  ['上海财经大学','in',0,'往A方向车头'],
+  ['复旦大学','both',1,'往A方向车尾、近1号口'],
+  ['国权路','in',1,'往A方向车尾'],
+  ['抚顺路','in',1,'往A方向车头'],
+  ['江浦路','in',1,'往A方向车尾'],
+  ['江浦公园','in',1,'往A方向近车头'],
+  ['平凉路','in',1,'往A方向车头、往B方向车尾'],
+  ['丹阳路','in',1,'往A方向车尾'],
+  ['昌邑路','in',1,'至14号线站台厕所'],
+  ['民生路','in',1,'往A方向车尾'],
+  ['杨高中路','in',1,'往A方向车尾'],
+  ['迎春路','in',1,'往A方向车尾'],
+  ['龙阳路','in',1,'往A方向车头'],
+  ['芳芯路','in',1,'往A方向车头'],
+  ['北中路','in',1,'往B方向车尾'],
+  ['莲溪路','in',1,'往A方向车头'],
+  ['御桥','in',1,'往B方向车尾、往A方向车头'],
+  ['康桥','in',1,'站台往B方向车头'],
+  ['周浦','in',1,'站台往A方向车头'],
+  ['繁荣路','in',1,'站台往B方向车头'],
+  ['沈梅路','in',1,'站台往B方向车头'],
+  ['鹤涛路','in',1,'站台往A方向车头'],
+  ['下沙','in',1,'站台往B方向车头'],
+  ['航头','in',1,'站台往A方向车尾'],
+]);
+window.__metro.addLine('pj', [
+  ['沈杜公路','outside',0,'1号口外'],
+  ['三鲁公路','out',1,'近1号口'],
+  ['闵瑞路','out',1,'近2号口'],
+  ['浦航路','out',1,'近2号口'],
+  ['东城一路','out',1,'近2号口'],
+  ['汇臻路','out',1,'近1号口'],
+]);
+
+// ╰─── end data_8.jsx ───╯
+
+// ╭─── data_build.jsx ───╮
+// ─── 沪屙屙 数据构建引擎 ───
+// 把 window.__metro.RAW_LINES 里的真实爬取数据，构建成 App 使用的数据结构。
+// 输出与旧 data.jsx 兼容的全局：LINES / STATIONS / byId / toiletById /
+//   linesOf / toiletLocBrief / toiletLocFull
+
+(function () {
+  const RAW = window.__metro.RAW_LINES;
+  const STMAP = {};     // name -> station
+  const LINES = {};     // lineId -> [stationName,...]（有序、去重）
+
+  function ensureStation(name) {
+    if (!STMAP[name]) STMAP[name] = { id: name, name, lines: [], hub: false, exits: [], toilets: [] };
+    return STMAP[name];
+  }
+
+  // 判断厕所在站台还是站厅
+  function classify(place, desc) {
+    if (/站台|车头|车尾|往[AB]方向/.test(desc)) return 'platform';
+    if (place === 'outside') return 'outside';
+    return 'concourse';
+  }
+
+  Object.keys(RAW).forEach((lineKey) => {
+    const lineId = /^\d+$/.test(lineKey) ? Number(lineKey) : lineKey;
+    const order = [];
+
+    RAW[lineKey].forEach((row, i) => {
+      const [name, place, acc, desc] = row;
+      const st = ensureStation(name);
+      if (!st.lines.includes(lineId)) st.lines.push(lineId);
+      if (!order.includes(name)) order.push(name);
+
+      const posType = classify(place, desc);          // platform | concourse | outside
+      let line = lineId;
+      const lm = desc.match(/(\d+)号线/);
+      if (lm) line = Number(lm[1]);                    // “至8号线站台” → 归到 8 号线站台
+
+      const near = (desc.match(/\d+号口/) || [])[0] || '';
+      const area = place === 'in' ? '付费区'
+                 : place === 'outside' ? '站外'
+                 : place === 'both' ? '站厅'
+                 : '非付费区';
+      const walk = posType === 'platform' ? 2
+                 : place === 'outside' ? 5
+                 : place === 'out' ? 3 : 2;
+      const closed = /改造|关闭|暂停|停用/.test(desc);
+
+      st.toilets.push({
+        id: `${name}#${lineKey}#${i}`,
+        station: name,
+        place: posType,
+        line, area, near, desc,
+        m: true, f: true,
+        acc: acc === 1,
+        walk, closed,
+      });
+    });
+
+    LINES[lineId] = order;
+  });
+
+  // 站内去重（同一站描述完全相同的厕所合并）
+  Object.values(STMAP).forEach((st) => {
+    const seen = new Set();
+    st.toilets = st.toilets.filter((t) => {
+      const k = t.place + '|' + t.desc;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    st.lines.sort((a, b) => String(a).localeCompare(String(b), 'en', { numeric: true }));
+    st.hub = st.lines.length > 1;
+  });
+
+  const STATIONS = Object.values(STMAP);
+
+  // ── helpers ──
+  function byId(id) { return STMAP[id] || null; }
+  function linesOf(id) { return STMAP[id] ? STMAP[id].lines : []; }
+  function toiletById(tid) {
+    for (const st of STATIONS) {
+      const t = st.toilets.find((x) => x.id === tid);
+      if (t) return t;
+    }
+    return null;
+  }
+  const POS_LABEL = { platform: '站台', concourse: '站厅', outside: '地面' };
+  function toiletLocBrief(t) { return t ? t.desc : ''; }
+  function toiletLocFull(t) {
+    if (!t) return '';
+    return `${POS_LABEL[t.place] || ''}层 · ${t.desc}`;
+  }
+
+  Object.assign(window, {
+    LINES, STATIONS, byId, linesOf, toiletById, toiletLocBrief, toiletLocFull,
+  });
+
+  // 调试：构建概况
+  const total = STATIONS.reduce((n, s) => n + s.toilets.length, 0);
+  console.log(`[沪屙屙] 构建完成：${STATIONS.length} 站 / ${total} 个厕所 / ${Object.keys(LINES).length} 条线路`);
+})();
+
+// ╰─── end data_build.jsx ───╯
+
+
+  </script>
+  <script type="text/babel" data-src="icons.jsx">
+// ─── SVG icon set (stroke-based, currentColor) ───
+const Ic = {
+  pin: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <path d="M12 21s7-6.3 7-11a7 7 0 10-14 0c0 4.7 7 11 7 11z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+      <circle cx="12" cy="10" r="2.4" fill="currentColor"/>
+    </svg>
+  ),
+  flag: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <path d="M6 21V4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M6 4.5h10.5l-2 3.5 2 3.5H6" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+    </svg>
+  ),
+  swap: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <path d="M7 4v13m0 0l-3-3m3 3l3-3M17 20V7m0 0l-3 3m3-3l3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  walk: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <circle cx="13" cy="4.5" r="1.8" fill="currentColor"/>
+      <path d="M13 8l-3 2 1 4m2-6l3 1.5 1 3.5m-4-5l-1.5 6L7 21m4-5l3 1 1.5 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  clock: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8"/>
+      <path d="M12 7.5V12l3 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  male: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <circle cx="10" cy="14" r="5" stroke="currentColor" strokeWidth="1.8"/>
+      <path d="M14 10l5-5m0 0h-4m4 0v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  female: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <circle cx="12" cy="9" r="5" stroke="currentColor" strokeWidth="1.8"/>
+      <path d="M12 14v7m-3-3h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  ),
+  acc: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <circle cx="11" cy="4.5" r="1.8" fill="currentColor"/>
+      <path d="M9 8v5h4l3 6m-7-11h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M13 15a4.5 4.5 0 11-5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  ),
+  drop: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <path d="M12 3s6 6.5 6 10.5a6 6 0 01-12 0C6 9.5 12 3 12 3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+    </svg>
+  ),
+  sparkle: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
+    </svg>
+  ),
+  home: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <path d="M4 11l8-6.5L20 11v8.5a1 1 0 01-1 1h-4v-6h-6v6H5a1 1 0 01-1-1V11z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+    </svg>
+  ),
+  map: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <path d="M9 4L4 6v14l5-2 6 2 5-2V4l-5 2-6-2z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+      <path d="M9 4v14m6-10v14" stroke="currentColor" strokeWidth="1.8"/>
+    </svg>
+  ),
+  user: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8"/>
+      <path d="M4.5 20a7.5 7.5 0 0115 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  ),
+  arrow: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <path d="M5 12h13m0 0l-5-5m5 5l-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  chevR: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  close: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  ),
+  near: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+      <circle cx="12" cy="12" r="6" stroke="currentColor" strokeWidth="1.6" opacity="0.6"/>
+      <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="1.4" opacity="0.3"/>
+    </svg>
+  ),
+  transfer: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <path d="M5 8h11m0 0l-3-3m3 3l-3 3M19 16H8m0 0l3-3m-3 3l3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  terminal: (p) => (
+    <svg viewBox="0 0 24 24" fill="none" {...p}>
+      <path d="M6 20V5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M6 5.5h11l-2 3 2 3H6" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+      <circle cx="6" cy="20" r="1.6" fill="currentColor"/>
+    </svg>
+  ),
+};
+
+Object.assign(window, { Ic });
+
+  </script>
+  <script type="text/babel" data-src="components.jsx">
+// ─── Shared glass UI primitives ───
+
+function LineDot({ n, size = 18 }) {
+  const label = (window.lineLabel ? window.lineLabel(n) : String(n));
+  return (
+    <span style={{
+      width: size, height: size, borderRadius: '50%',
+      background: LINE_COLORS[n] || '#888', color: '#fff',
+      fontSize: size * (String(label).length > 1 ? 0.46 : 0.56), fontWeight: 700, lineHeight: 1,
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0, fontFamily: '-apple-system, system-ui',
+      boxShadow: '0 1px 2px rgba(0,0,0,0.18)',
+    }}>{label}</span>
+  );
+}
+
+function LineBadges({ lines, size = 18 }) {
+  return (
+    <span style={{ display: 'inline-flex', gap: 4 }}>
+      {lines.map((n) => <LineDot key={n} n={n} size={size} />)}
+    </span>
+  );
+}
+
+function GlassCard({ children, style = {}, className = '', onClick }) {
+  return (
+    <div className={'glass ' + className} onClick={onClick} style={style}>
+      {children}
+    </div>
+  );
+}
+
+function SectionLabel({ icon, children, hint }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '0 4px 9px' }}>
+      {icon && <span style={{ width: 16, height: 16, color: 'var(--ink-3)' }}>{icon({ width: 16, height: 16 })}</span>}
+      <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.3, color: 'var(--ink-3)' }}>{children}</span>
+      {hint && <span style={{ fontSize: 12, color: 'var(--ink-4)', marginLeft: 'auto', fontWeight: 500 }}>{hint}</span>}
+    </div>
+  );
+}
+
+// Segmented control on glass. options: [{key,label,icon,color}]
+function Segmented({ options, value, onChange }) {
+  return (
+    <div className="seg">
+      {options.map((o) => {
+        const on = value === o.key;
+        return (
+          <button key={o.key} className={'seg-item' + (on ? ' on' : '')} onClick={() => onChange(o.key)}
+            style={on && o.color ? { color: '#fff' } : undefined}>
+            {on && <span className="seg-pill" style={o.color ? { background: o.color } : undefined} />}
+            <span className="seg-content">
+              {o.icon && <span style={{ width: 18, height: 18, display: 'inline-flex' }}>{o.icon({ width: 18, height: 18 })}</span>}
+              <span>{o.label}</span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+Object.assign(window, { LineDot, LineBadges, GlassCard, SectionLabel, Segmented });
+
+  </script>
+  <script type="text/babel" data-src="strategy.jsx">
+// ─── 厕所推荐策略 v2：真实路径规划 + 方向感知 + 同站去重 ───
+// 关键升级：
+//  1. findRoute(a,b) 用 BFS 在线网图上求出真实换乘路径（含方向、换乘点、每站累计时间）
+//  2. 候选厕所只取「行进方向上、你还没经过的站」——理解方向
+//  3. 同一车站只保留最合适的 1 个厕所——去重
+//  4. 换乘概念来自真实路径上的换乘点，而非"任意枢纽"
+
+const HOLD_MIN = [1.5, 6, 12, 999];   // wait 档对应能憋的分钟
+const PER_HOP  = 2.5;                 // 每站平均区间运行
+const TRANSFER = 5;                   // 一次换乘耗时（步行+候车）
+const BOARD    = 2;                   // 平均候车
+
+// ── 线网邻接图（缓存）──
+let _adj = null;
+function adjacency() {
+  if (_adj) return _adj;
+  _adj = {};
+  const add = (a, b, line) => {
+    (_adj[a] = _adj[a] || []).push({ to: b, line });
+  };
+  for (const [lk, arr] of Object.entries(LINES)) {
+    const line = /^\d+$/.test(lk) ? Number(lk) : lk;
+    for (let i = 0; i < arr.length - 1; i++) {
+      add(arr[i], arr[i + 1], line);
+      add(arr[i + 1], arr[i], line);
+    }
+  }
+  return _adj;
+}
+
+// ── 站点经停线路 / 同线邻居（取自线网图，保证与图一致）──
+function linesAtStation(sid) {
+  const set = new Set();
+  for (const e of (adjacency()[sid] || [])) set.add(e.line);
+  return [...set];
+}
+function neighborsOnLine(sid, line) {
+  const out = [];
+  for (const e of (adjacency()[sid] || [])) if (e.line === line) out.push(e.to);
+  return out;
+}
+
+// ── 路径规划 v3（方案 C，无坐标）：最少换乘 → 最少站数 → 尽量晚换乘 ──
+// 把字典序代价 (换乘次数, 站数, 早换乘惩罚) 压成一个标量后跑 Dijkstra：
+//   · 换乘权重 >> 站数权重 >> 晚换乘微调，三档互不串位；
+//   · 「尽量晚换乘」= 坐满当前线再换，能在「换乘数+站数都打平」时
+//     避免提前下车去绕远路（正是 锦绣路→龙阳路 兜圈子的成因）。
+// 返回 { path, hopLine, transfers:[{at,fromLine,toLine}], cumTime } —— 与旧版字段兼容。
+const _routeCache = {};
+function findRoute(aId, bId) {
+  if (!aId || !bId || aId === bId) return null;
+  const ck = aId + '→' + bId;
+  if (_routeCache[ck] !== undefined) return _routeCache[ck];
+
+  const W_T = 1e6, W_S = 1e3;                       // 换乘 >> 站数 >> 晚换乘
+  const keyOf = (t, s, f) => t * W_T + s * W_S + (300 - f);
+  const startLines = linesAtStation(aId);
+  if (!startLines.length) return (_routeCache[ck] = null);
+
+  const dist = {}, pq = [];
+  const relax = (station, line, t, s, f, prev, via) => {
+    const id = station + '|' + line, cost = keyOf(t, s, f);
+    if (dist[id] == null || cost < dist[id]) {
+      dist[id] = cost;
+      pq.push({ station, line, transfers: t, stops: s, firstSeg: f, prev, via, cost });
+    }
+  };
+  for (const L of startLines) relax(aId, L, 0, 0, 0, null, 'start');
+
+  const settled = new Set();
+  let goal = null;
+  while (pq.length) {
+    let mi = 0;
+    for (let i = 1; i < pq.length; i++) if (pq[i].cost < pq[mi].cost) mi = i;
+    const cur = pq.splice(mi, 1)[0];
+    const cid = cur.station + '|' + cur.line;
+    if (settled.has(cid)) continue;
+    settled.add(cid);
+    if (cur.station === bId) { goal = cur; break; }
+    // 坐一站（同线，站数 +1；首段未换乘前累计 firstSeg）
+    for (const to of neighborsOnLine(cur.station, cur.line)) {
+      relax(to, cur.line, cur.transfers, cur.stops + 1,
+        cur.transfers === 0 ? cur.firstSeg + 1 : cur.firstSeg, cur, 'ride');
+    }
+    // 换乘（同站换线，换乘 +1；firstSeg 冻结）
+    for (const L2 of linesAtStation(cur.station)) {
+      if (L2 === cur.line) continue;
+      relax(cur.station, L2, cur.transfers + 1, cur.stops, cur.firstSeg, cur, 'transfer');
+    }
+  }
+  if (!goal) return (_routeCache[ck] = null);
+
+  // 回溯状态链 → path / hopLine / transfers
+  const chain = []; for (let n = goal; n; n = n.prev) chain.unshift(n);
+  const path = [aId], hopLine = [], transfers = [];
+  for (let i = 1; i < chain.length; i++) {
+    const p = chain[i - 1], c = chain[i];
+    if (c.via === 'ride') { path.push(c.station); hopLine.push(c.line); }
+    else if (c.via === 'transfer') transfers.push({ at: c.station, fromLine: p.line, toLine: c.line });
+  }
+  const cumTime = [0];
+  for (let i = 0; i < hopLine.length; i++) {
+    let seg = PER_HOP;
+    if (i > 0 && hopLine[i] !== hopLine[i - 1]) seg += TRANSFER;
+    cumTime.push(cumTime[i] + seg);
+  }
+  return (_routeCache[ck] = { path, hopLine, transfers, cumTime });
+}
+
+// A → B 通行时间（分钟）
+function metroTravel(aId, bId) {
+  if (aId === bId) return 0;
+  const r = findRoute(aId, bId);
+  if (!r) return 999;
+  return r.cumTime[r.cumTime.length - 1];
+}
+
+// 厕所是否满足需求
+function meetsNeed(t, gender) {
+  if (t.closed) return false;
+  if (gender === 'acc') return !!t.acc;
+  if (gender === 'f') return !!t.f;
+  return !!t.m;
+}
+
+// 同站多个厕所 → 选最合适的一个（满足需求、优先站台、其次站厅、再站外）
+function bestToiletAt(st, gender) {
+  const ok = st.toilets.filter((t) => meetsNeed(t, gender));
+  if (!ok.length) return null;
+  const rankPos = { platform: 0, concourse: 1, outside: 2 };
+  ok.sort((a, b) => (rankPos[a.place] - rankPos[b.place]) || (a.walk - b.walk));
+  return ok[0];
+}
+
+// ── 候选站集合：方向感知 ──
+// 有终点：取路径上「当前站 → 终点」沿途所有站（即你前进方向会经过的站）
+// 无终点：取当前站 + 同线相邻 2 站（两侧，因不知方向）
+function candidateStations(curId, destId) {
+  if (destId) {
+    const r = findRoute(curId, destId);
+    if (r) {
+      // 路径上每个站，附带「到达该站的累计时间」与是否换乘点
+      return r.path.map((sid, i) => ({
+        st: byId(sid),
+        travel: r.cumTime[i],
+        isTransfer: r.transfers.some((tr) => tr.at === sid),
+        isCur: sid === curId,
+        isDest: sid === destId,
+        idx: i,
+      })).filter((x) => x.st);
+    }
+  }
+  // 无终点 fallback
+  const out = [{ st: byId(curId), travel: 0, isTransfer: false, isCur: true, isDest: false, idx: 0 }];
+  const cur = byId(curId);
+  if (cur) {
+    const adj = adjacency();
+    const near = new Set();
+    for (const e of adj[curId] || []) near.add(e.to);
+    [...near].forEach((sid, k) => {
+      const s = byId(sid);
+      if (s) out.push({ st: s, travel: PER_HOP, isTransfer: false, isCur: false, isDest: false, idx: 1 + k });
+    });
+  }
+  return out;
+}
+
+function rankToilets(ctx) {
+  const { cur, dest, gender, strat } = ctx;
+  const hold = ctx.hold != null ? ctx.hold : 12;
+  const cands = candidateStations(cur, dest);
+  const out = [];
+
+  for (const c of cands) {
+    const st = c.st;
+    const t = bestToiletAt(st, gender);   // ★ 每站只取 1 个厕所 → 去重
+    if (!t) continue;
+
+    const totalMin = c.travel + t.walk;
+    const inTime = totalMin <= hold;
+    const tags = [];
+
+    // 基础分：越快到越好，但权重温和——不让「当前站」凭距离永远压倒策略目标
+    let score = 50 - totalMin * 2;
+
+    // 位置：站台层离乘客最近
+    if (t.place === 'platform') { score += 8; tags.push('站台层'); }
+    else if (t.place === 'concourse') { score += 3; tags.push('站厅层'); }
+    else { score -= 2; tags.push('站外'); }
+
+    // 策略角色 —— 占主导权重，保证榜首推荐与所选策略一致
+    if (strat === 'near') {
+      if (c.isCur) { score += 42; tags.unshift('当前站'); }
+      else { score += Math.max(0, 28 - c.idx * 5); if (dest) tags.push('顺路'); }
+    } else if (strat === 'terminal') {
+      if (c.isDest) { score += 72; tags.unshift('终点站'); }
+      else if (c.isCur) { score += 6; tags.push('当前站'); }
+      else { score += 6 + c.idx * 2; tags.push('顺路'); }    // 越靠近终点越优先
+    } else if (strat === 'transfer') {
+      if (c.isTransfer) { score += 72; tags.unshift('换乘站'); }
+      else if (c.isDest) { score += 24; tags.unshift('终点站'); }
+      else if (c.isCur) { score += 6; tags.push('当前站'); }
+      else { score += 6; tags.push('顺路'); }
+    }
+
+    if (t.area === '付费区') score += 3;
+    if (t.acc && gender === 'acc') score += 6;
+    else if (t.acc) tags.push('有无障碍');
+
+    if (!inTime) score -= 60;                                 // 来不及的目标站让位给就近兜底
+    else if (totalMin <= hold * 0.6) tags.push('从容');
+
+    out.push({
+      toilet: t, station: st, score,
+      travelMin: c.travel, totalMin, inTime,
+      isTransfer: c.isTransfer, isCur: c.isCur, isDest: c.isDest,
+      reasonTags: tags,
+    });
+  }
+  out.sort((a, b) => b.score - a.score);
+  return out;
+}
+
+// ── 热门车站（客流/换乘枢纽，用于搜索默认排序）──
+const POPULAR_STATIONS = [
+  '人民广场', '徐家汇', '陆家嘴', '南京东路', '南京西路', '世纪大道',
+  '静安寺', '虹桥火车站', '上海火车站', '中山公园', '五角场', '陕西南路',
+  '一大会址·新天地', '豫园', '上海南站', '虹桥2号航站楼', '浦东国际机场',
+  '迪士尼', '龙阳路', '世纪公园', '金沙江路', '曹杨路', '宝山路', '四平路',
+];
+const POP_RANK = {};
+POPULAR_STATIONS.forEach((n, i) => { POP_RANK[n] = i; });
+
+// 选站器默认排序：'hot' 热门优先 / 'near' 离参考站最近
+function sortStationsForPicker(mode, refId) {
+  const arr = STATIONS.slice();
+  if (mode === 'near' && refId) {
+    return arr
+      .map((s) => ({ s, d: s.id === refId ? -1 : metroTravel(refId, s.id) }))
+      .sort((a, b) => a.d - b.d)
+      .map((x) => ({ ...x.s, _dist: x.d }));
+  }
+  // hot：热门站按既定顺序在前，其余保持原序在后
+  return arr.sort((a, b) => {
+    const ra = POP_RANK[a.name] != null ? POP_RANK[a.name] : 999;
+    const rb = POP_RANK[b.name] != null ? POP_RANK[b.name] : 999;
+    return ra - rb;
+  });
+}
+
+// ── 自动决策：根据憋忍分钟 + 路线，决定上厕所策略 ──
+// 规则：
+//  1. 时间很紧(≤3分) → 就近，路上最快到的厕所
+//  2. 时间适中(且不算很长) + 路线有换乘站 + 该换乘站有「付费区」厕所且来得及 → 换乘时顺便解决
+//  3. 时间很充裕 + 终点可在时间内到达 → 到终点从容解决
+//  4. 其余 → 就近
+const URGENT_MAX = 3;     // ≤ 此值视为紧急
+const RELAX_MIN  = 16;    // ≥ 此值视为很充裕
+
+function decideStrategy(ctx) {
+  const { cur, dest, gender } = ctx;
+  const hold = ctx.hold != null ? ctx.hold : 12;
+  const cands = candidateStations(cur, dest);
+
+  if (hold <= URGENT_MAX) {
+    return { strat: 'near', reason: '时间很紧，优先就近、最快能到的厕所。' };
+  }
+
+  if (dest) {
+    const dc = cands.find((c) => c.isDest);
+    const dt = dc && bestToiletAt(dc.st, gender);
+    const destReachable = dt && (dc.travel + dt.walk) <= hold;
+
+    // 时间非常充裕 + 终点来得及 → 到终点从容解决（优先于换乘）
+    if (hold >= RELAX_MIN && destReachable) {
+      return { strat: 'terminal', reason: `时间充裕，到终点 ${dc.st.name} 下车从容解决。` };
+    }
+    // 时间适中（不算非常长）→ 路上换乘站 + 付费区厕所 + 来得及 → 换乘时顺便解决
+    const transfers = cands.filter((c) => c.isTransfer && !c.isDest);
+    for (const c of transfers) {
+      const paid = c.st.toilets.find((t) => meetsNeed(t, gender) && t.area === '付费区');
+      if (paid && (c.travel + paid.walk) <= hold) {
+        return { strat: 'transfer', transferAt: c.st.id,
+          reason: `路上在 ${c.st.name} 换乘，那里付费区内有厕所，顺便解决最省事。` };
+      }
+    }
+    // 兜底：终点来得及也可终点解决
+    if (destReachable) {
+      return { strat: 'terminal', reason: `到终点 ${dc.st.name} 下车从容解决。` };
+    }
+  }
+  return { strat: 'near', reason: '沿当前路线，挑你前进方向上最快能到的厕所。' };
+}
+
+// 自动决策 + 排序，一次给出
+function recommend(ctx) {
+  const d = decideStrategy(ctx);
+  const list = rankToilets({ ...ctx, strat: d.strat });
+  return { strat: d.strat, reason: d.reason, transferAt: d.transferAt, list };
+}
+
+Object.assign(window, { rankToilets, recommend, decideStrategy, metroTravel, findRoute, meetsNeed, HOLD_MIN, POPULAR_STATIONS, POP_RANK, sortStationsForPicker });
+
+  </script>
+  <script type="text/babel" data-src="home.jsx">
+// ─── Home screen pieces ───
+
+const GENDERS = [
+  { key: 'm', label: '男厕', icon: Ic.male },
+  { key: 'f', label: '女厕', icon: Ic.female },
+  { key: 'acc', label: '无障碍', icon: Ic.acc },
+];
+const NEEDS = [
+  { key: 'pee', label: '小便', color: '#3FA7D6' },
+  { key: 'poop', label: '大便', color: '#C8772E' },
+];
+
+// 时间轴吸附点
+const WAIT_SNAPS = [
+  { min: 1,  label: '马上',   desc: '快憋不住了' },
+  { min: 8,  label: '有点急', desc: '撑得住一会儿' },
+  { min: 22, label: '随便逛', desc: '想去再去' },
+];
+const WAIT_MAX = 25;
+
+function waitColor(m) { return m <= 4 ? '#E3002B' : m < 15 ? '#ED8B00' : '#2EA56A'; }
+function waitState(m) { return m <= 2 ? '马上就要上' : m < 15 ? '有点急' : '还能等 · 随便逛'; }
+
+// route: current → destination
+function RouteCard({ cur, dest, onPick, onSwap, onLocate, locating }) {
+  const Row = ({ kind, st, placeholder }) => (
+    <button className="route-row" onClick={() => onPick(kind)}>
+      <span className="route-icon" style={{ color: kind === 'cur' ? 'var(--brand)' : 'var(--ink-2)' }}>
+        {kind === 'cur' ? Ic.pin({ width: 20, height: 20 }) : Ic.flag({ width: 20, height: 20 })}
+      </span>
+      <span className="route-text">
+        <span className="route-label">{kind === 'cur' ? '我在这一站' : '目的地'}</span>
+        {st ? (
+          <span className="route-station">
+            <span>{st.name}</span>
+            <LineBadges lines={st.lines} size={17} />
+          </span>
+        ) : (
+          <span className="route-station ph">{placeholder}</span>
+        )}
+      </span>
+      <span className="route-chev">{Ic.chevR({ width: 18, height: 18 })}</span>
+    </button>
+  );
+  return (
+    <GlassCard style={{ padding: 6, position: 'relative' }}>
+      <Row kind="cur" st={cur} />
+      <div className="route-divider">
+        <span className="route-track" />
+        <button className="swap-btn" onClick={onSwap} aria-label="交换">
+          {Ic.swap({ width: 18, height: 18 })}
+        </button>
+      </div>
+      <Row kind="dest" st={dest} placeholder="选择你要去的终点站" />
+      <button className={'locate-btn' + (locating ? ' on' : '')} onClick={onLocate}>
+        <span className={'locate-dot' + (locating ? ' pulse' : '')} />
+        {locating ? '定位中…' : '重新定位'}
+      </button>
+    </GlassCard>
+  );
+}
+
+// 可拖动时间轴：3 吸附点 + 无级调节（精确到分钟）
+function WaitSlider({ value, onChange }) {
+  const trackRef = React.useRef(null);
+  const pct = Math.max(0, Math.min(1, value / WAIT_MAX)) * 100;
+  const color = waitColor(value);
+
+  const apply = (clientX, doSnap) => {
+    const el = trackRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    let f = (clientX - r.left) / r.width;
+    f = Math.max(0, Math.min(1, f));
+    let val = Math.round(f * WAIT_MAX);
+    if (doSnap) {
+      for (const s of WAIT_SNAPS) if (Math.abs(val - s.min) <= 1.5) val = s.min;
+    }
+    onChange(Math.max(1, val));
+  };
+  const onDown = (e) => { e.currentTarget.setPointerCapture(e.pointerId); apply(e.clientX, false); };
+  const onMove = (e) => { if (e.buttons === 0) return; apply(e.clientX, false); };
+  const onUp = (e) => { apply(e.clientX, true); };
+
+  return (
+    <GlassCard style={{ padding: '16px 18px 16px' }}>
+      <div className="wait-readout">
+        <span className="wait-big" style={{ color }}>{waitState(value)}</span>
+        <span className="wait-sub">还能憋 <b style={{ color }}>{value >= 22 ? '很久' : value + ' 分钟'}</b></span>
+      </div>
+      <div className="wslider" ref={trackRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp}>
+        <div className="wslider-rail" />
+        <div className="wslider-fill" style={{ width: pct + '%', background: color }} />
+        {WAIT_SNAPS.map((s) => (
+          <span key={s.min} className="wslider-snap" style={{ left: (s.min / WAIT_MAX * 100) + '%' }} />
+        ))}
+        <span className="wslider-thumb" style={{ left: pct + '%', borderColor: color }} />
+      </div>
+      <div className="wslider-ticks">
+        {WAIT_SNAPS.map((s) => (
+          <button key={s.min} type="button" className={'wtick' + (Math.abs(value - s.min) <= 1 ? ' on' : '')}
+            style={{ left: (s.min / WAIT_MAX * 100) + '%' }} onClick={() => onChange(s.min)}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+    </GlassCard>
+  );
+}
+
+// 自动决策预览条
+function AutoPlan({ st }) {
+  if (!window.decideStrategy) return null;
+  const d = window.decideStrategy({ cur: st.cur, dest: st.dest, gender: st.gender, hold: st.hold });
+  const meta = { near: Ic.near, transfer: Ic.transfer, terminal: Ic.terminal }[d.strat];
+  const label = { near: '就近解决', transfer: '换乘顺便', terminal: '终点解决' }[d.strat];
+  return (
+    <div className="autoplan glass">
+      <span className="autoplan-ic">{meta({ width: 20, height: 20 })}</span>
+      <div className="autoplan-text">
+        <span className="autoplan-label">自动策略 · {label}</span>
+        <span className="autoplan-reason">{d.reason}</span>
+      </div>
+    </div>
+  );
+}
+
+function HomeScreen({ st, set, onSearch, onPick }) {
+  const cur = byId(st.cur);
+  const dest = st.dest ? byId(st.dest) : null;
+
+  const onLocate = () => {
+    set({ locating: true });
+    setTimeout(() => set({ locating: false, cur: '人民广场' }), 1100);
+  };
+
+  return (
+    <div className="screen-pad">
+      <div className="brand">
+        <div className="brand-mark">{Ic.drop({ width: 22, height: 22 })}</div>
+        <div>
+          <div className="brand-name">沪屙屙</div>
+          <div className="brand-tag">上海地铁 · 找厕所</div>
+        </div>
+      </div>
+
+      <SectionLabel icon={Ic.pin}>你的路线</SectionLabel>
+      <RouteCard cur={cur} dest={dest} locating={st.locating}
+        onPick={onPick}
+        onSwap={() => dest && set({ cur: st.dest, dest: st.cur })}
+        onLocate={onLocate} />
+
+      <div style={{ height: 20 }} />
+      <SectionLabel icon={Ic.drop} hint="快捷选项">这次的需求</SectionLabel>
+      <GlassCard style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Segmented options={GENDERS} value={st.gender} onChange={(v) => set({ gender: v })} />
+        <Segmented options={NEEDS} value={st.need} onChange={(v) => set({ need: v })} />
+      </GlassCard>
+
+      <div style={{ height: 20 }} />
+      <SectionLabel icon={Ic.clock} hint="拖动调节">你还能憋多久</SectionLabel>
+      <WaitSlider value={st.hold} onChange={(v) => set({ hold: v })} />
+
+      <div style={{ height: 12 }} />
+      <AutoPlan st={st} />
+
+      <div style={{ height: 22 }} />
+      <button className="cta" onClick={onSearch}>
+        <span>寻找厕所</span>
+        {Ic.arrow({ width: 22, height: 22 })}
+      </button>
+      <div style={{ height: 18 }} />
+    </div>
+  );
+}
+
+Object.assign(window, { HomeScreen, GENDERS, NEEDS, WAIT_SNAPS, WAIT_MAX, waitColor, waitState });
+
+  </script>
+  <script type="text/babel" data-src="sheets.jsx">
+// ─── Sheets: station picker (GPS / search / by line), result, toilet detail ───
+
+const POS_META = {
+  platform:  { label: '站台层', icon: Ic.terminal, color: '#0085CA' },
+  concourse: { label: '站厅层', icon: Ic.pin,      color: 'var(--brand)' },
+  outside:   { label: '站外',   icon: Ic.flag,     color: '#ED8B00' },
+};
+
+// ────────────────────────────────────────────────────────────────
+function SheetShell({ children, onClose, title, kicker, kickerIcon }) {
+  return (
+    <div className="sheet-wrap" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-grab" />
+        <div className="sheet-head">
+          <div>
+            {kicker && (
+              <div className="sheet-kicker">
+                {kickerIcon && <span className="sheet-kicker-ic">{kickerIcon({ width: 15, height: 15 })}</span>}
+                {kicker}
+              </div>
+            )}
+            <div className="sheet-title">{title}</div>
+          </div>
+          <button className="sheet-close" onClick={onClose}>{Ic.close({ width: 18, height: 18 })}</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// 厕所卡（真实数据：位置 + 区域 + 设施可用性）
+// ────────────────────────────────────────────────────────────────
+function ToiletCard({ rank, gender, primary, onOpen }) {
+  const { toilet: t, station: st, totalMin, travelMin, inTime, reasonTags } = rank;
+  const pos = POS_META[t.place];
+  return (
+    <button className={'toilet-card' + (primary ? ' primary' : '')} onClick={onOpen}>
+      <div className="tc-top">
+        <div style={{ textAlign: 'left', flex: 1, minWidth: 0 }}>
+          <div className="tc-name">{st.name}<LineBadges lines={st.lines} size={16} /></div>
+          <div className="tc-loc">{toiletLocBrief(t)}</div>
+        </div>
+        <div className="tc-walk">
+          <span className="tc-walk-ic">{Ic.walk({ width: 16, height: 16 })}</span>
+          <span><b>{Math.round(totalMin)}</b> 分钟</span>
+        </div>
+      </div>
+      <div className="tc-stats">
+        <span className="tc-chip" style={{ color: pos.color }}>
+          {pos.icon({ width: 14, height: 14 })}{pos.label}
+        </span>
+        {t.place !== 'platform' && <span className="tc-chip">{t.area}</span>}
+        <span className="tc-chip">{Ic.male({ width: 13, height: 13 })}{Ic.female({ width: 13, height: 13 })}男女</span>
+        {t.acc && <span className="tc-chip" style={{ color: 'var(--brand)' }}>{Ic.acc({ width: 13, height: 13 })}无障碍</span>}
+        {travelMin > 0 && <span className="tc-chip">坐车 {Math.round(travelMin)} 分</span>}
+        {!inTime && <span className="tc-chip" style={{ color: '#E3002B', background: 'rgba(227,0,43,0.08)' }}>可能赶不上</span>}
+        {reasonTags.slice(0, 1).map((tag) => (
+          <span key={tag} className="tc-chip" style={{ color: 'var(--brand)', background: 'var(--brand-tint)' }}>{tag}</span>
+        ))}
+      </div>
+    </button>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// 结果面板
+// ────────────────────────────────────────────────────────────────
+function ResultSheet({ st, onClose, onOpenToilet }) {
+  const STRAT_META = {
+    near: { label: '就近解决', icon: Ic.near },
+    transfer: { label: '换乘顺便', icon: Ic.transfer },
+    terminal: { label: '终点解决', icon: Ic.terminal },
+  };
+  const { strat, reason, list: ranked } = recommend(st);
+  const stratMeta = STRAT_META[strat];
+  const needLabel = st.need === 'poop' ? '大号' : '小号';
+  const genderLabel = st.gender === 'f' ? '女士' : st.gender === 'acc' ? '无障碍' : '男士';
+
+  const primary = ranked[0];
+  const alts = ranked.slice(1, 5);
+
+  return (
+    <SheetShell onClose={onClose} title="为你找到这些厕所"
+      kicker={`${stratMeta.label} · ${genderLabel}${needLabel} · 能憋 ${st.hold >= 22 ? '很久' : st.hold + ' 分'}`}
+      kickerIcon={stratMeta.icon}>
+      <div className="sheet-body">
+        <div className="sheet-reason">{reason}</div>
+        {primary ? <ToiletCard rank={primary} gender={st.gender} primary onOpen={() => onOpenToilet(primary)} /> : (
+          <div className="empty-hint">附近没找到匹配的厕所，试试放宽需求或时间</div>
+        )}
+        {alts.length > 0 && <div className="alt-label">其他选择</div>}
+        {alts.map((r) => <ToiletCard key={r.toilet.id} rank={r} gender={st.gender} onOpen={() => onOpenToilet(r)} />)}
+        <div style={{ height: 8 }} />
+      </div>
+    </SheetShell>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// 厕所详情
+// ────────────────────────────────────────────────────────────────
+function FacilityCell({ on, icon, label, sub }) {
+  return (
+    <div className={'td-facility' + (on ? '' : ' off')}>
+      <span className="td-facility-ic">{icon({ width: 20, height: 20 })}</span>
+      <span className="td-facility-l">{label}</span>
+      <span className="td-facility-s">{sub}</span>
+    </div>
+  );
+}
+
+function ToiletDetailSheet({ rank, onClose }) {
+  const { toilet: t, station: st, totalMin, travelMin } = rank;
+  const pos = POS_META[t.place];
+  return (
+    <SheetShell onClose={onClose} title={`${st.name}`}
+      kicker="厕所详情" kickerIcon={Ic.drop}>
+      <div className="sheet-body">
+        <div className="td-summary">
+          <div className="td-station">
+            <span className="td-name">{st.name}</span>
+            <LineBadges lines={st.lines} size={18} />
+            {st.hub && <span className="hub-tag">换乘</span>}
+          </div>
+          <div className="td-walk">
+            <span className="tc-walk-ic">{Ic.walk({ width: 18, height: 18 })}</span>
+            <span><b>{Math.round(totalMin)}</b> 分钟可达</span>
+            {travelMin > 0 && <span className="td-walk-sub">（含坐车 {Math.round(travelMin)} 分）</span>}
+          </div>
+        </div>
+
+        <div className="td-section">
+          <div className="td-label">位置</div>
+          <div className="td-row">
+            <span className="td-ic" style={{ color: pos.color }}>{pos.icon({ width: 18, height: 18 })}</span>
+            <div>
+              <div className="td-row-title">{pos.label}</div>
+              <div className="td-row-sub">{t.desc}</div>
+            </div>
+          </div>
+          <div className="td-row">
+            <span className="td-ic">{Ic.near({ width: 18, height: 18 })}</span>
+            <div>
+              <div className="td-row-title">{t.area}{t.near ? ` · ${t.near}` : ''}</div>
+              <div className="td-row-sub">步行约 {t.walk} 分钟到达</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="td-section">
+          <div className="td-label">设施</div>
+          <div className="td-facility-grid">
+            <FacilityCell on={t.m} icon={Ic.male} label="男厕" sub={t.m ? '可用' : '无'} />
+            <FacilityCell on={t.f} icon={Ic.female} label="女厕" sub={t.f ? '可用' : '无'} />
+            <FacilityCell on={t.acc} icon={Ic.acc} label="无障碍" sub={t.acc ? '可用' : '无'} />
+          </div>
+        </div>
+
+        {t.closed && (
+          <div className="td-section">
+            <div className="td-note">⚠️ 该厕所可能正在改造或暂停使用，建议就近选择其他厕所。</div>
+          </div>
+        )}
+
+        <div className="td-source">数据来源：上海地铁公开厕所分布信息 · 仅供参考</div>
+        <div style={{ height: 12 }} />
+      </div>
+    </SheetShell>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+// 选站器：GPS / 搜索 / 按线路
+// ────────────────────────────────────────────────────────────────
+function StationPicker({ kind, current, refStation, onSelect, onClose }) {
+  const [tab, setTab] = React.useState('search'); // 'search' | 'line'
+  const [q, setQ] = React.useState('');
+  const [line, setLine] = React.useState(1);
+  const [sortMode, setSortMode] = React.useState('hot'); // 'hot' | 'near'
+  const [locating, setLocating] = React.useState(kind === 'cur');
+  const [located, setLocated] = React.useState(null);
+
+  React.useEffect(() => {
+    if (kind !== 'cur') return;
+    const tm = setTimeout(() => { setLocating(false); setLocated('人民广场'); }, 1100);
+    return () => clearTimeout(tm);
+  }, [kind]);
+
+  const refId = refStation || (located && located) || current;
+  const searching = !!q.trim();
+  const list = searching
+    ? STATIONS.filter((s) => s.name.includes(q.trim()))
+    : sortStationsForPicker(sortMode, refId);
+  const lineStations = (LINES[line] || []).map(byId).filter(Boolean);
+  const locatedSt = located ? byId(located) : null;
+
+  return (
+    <SheetShell onClose={onClose}
+      title={kind === 'cur' ? '选择当前站' : '选择终点站'}
+      kicker={kind === 'cur' ? '默认定位你所在的车站' : '你要去哪一站？'}
+      kickerIcon={kind === 'cur' ? Ic.near : Ic.flag}>
+
+      {kind === 'cur' && (
+        <button className={'gps-card glass' + (locating ? ' loading' : '')} onClick={() => locatedSt && onSelect(locatedSt.id)} disabled={!locatedSt}>
+          <span className={'gps-radar' + (locating ? ' on' : '')}>
+            <span className="gps-wave" /><span className="gps-wave d" /><span className="gps-dot" />
+          </span>
+          <span className="gps-text">
+            <span className="gps-label">{locating ? '正在定位…' : '检测到你在'}</span>
+            <span className="gps-station">
+              {locating ? '搜索附近车站' : locatedSt && locatedSt.name}
+              {locatedSt && <LineBadges lines={locatedSt.lines} size={16} />}
+            </span>
+          </span>
+          {!locating && locatedSt && <span className="gps-use">使用 {Ic.arrow({ width: 16, height: 16 })}</span>}
+        </button>
+      )}
+
+      <div className="picker-tabs">
+        <button className={'pt' + (tab === 'search' ? ' on' : '')} onClick={() => setTab('search')}>搜索站名</button>
+        <button className={'pt' + (tab === 'line' ? ' on' : '')} onClick={() => setTab('line')}>按线路</button>
+      </div>
+
+      {tab === 'search' ? (
+        <React.Fragment>
+          <div className="picker-search glass">
+            <span style={{ color: 'var(--ink-3)' }}>{Ic.pin({ width: 18, height: 18 })}</span>
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索站名…" />
+          </div>
+          {!searching && (
+            <div className="sort-row">
+              <span className="sort-head">{sortMode === 'hot' ? '热门车站' : `离${refId ? byId(refId)?.name : '你'}最近`}</span>
+              <div className="sort-toggle">
+                <button className={'st-btn' + (sortMode === 'hot' ? ' on' : '')} onClick={() => setSortMode('hot')}>热门</button>
+                <button className={'st-btn' + (sortMode === 'near' ? ' on' : '')} onClick={() => setSortMode('near')} disabled={!refId}>最近</button>
+              </div>
+            </div>
+          )}
+          <div className="sheet-body picker-list">
+            {list.map((s) => (
+              <button key={s.id} className={'picker-row' + (s.id === current ? ' on' : '')} onClick={() => onSelect(s.id)}>
+                <span className="pr-name">
+                  {!searching && sortMode === 'hot' && POP_RANK[s.name] != null && <span className="hot-dot">{Ic.sparkle({ width: 12, height: 12 })}</span>}
+                  {s.name}{s.hub && <span className="hub-tag">换乘</span>}
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  {!searching && sortMode === 'near' && s._dist > 0 && <span className="pr-dist">{Math.round(s._dist)} 分</span>}
+                  <LineBadges lines={s.lines} size={18} />
+                </span>
+              </button>
+            ))}
+            {list.length === 0 && <div className="empty-hint">没有找到「{q}」</div>}
+          </div>
+        </React.Fragment>
+      ) : (
+        <React.Fragment>
+          <div className="line-strip">
+            {LINE_ORDER.map((n) => {
+              const on = line === n;
+              return (
+                <button key={n} className={'line-chip' + (on ? ' on' : '')} onClick={() => setLine(n)}
+                  style={on ? { background: LINE_COLORS[n], color: '#fff' } : { color: LINE_COLORS[n] }}>
+                  <span className="lc-dot" style={{ background: LINE_COLORS[n] }} />{lineName(n)}
+                </button>
+              );
+            })}
+          </div>
+          <div className="sheet-body picker-list line-list">
+            <div className="line-head" style={{ borderColor: LINE_COLORS[line] }}>
+              <LineDot n={line} size={22} />
+              <span>{lineName(line)} · 共 {lineStations.length} 站</span>
+            </div>
+            {lineStations.map((s, i) => (
+              <button key={s.id} className={'picker-row line-row' + (s.id === current ? ' on' : '')} onClick={() => onSelect(s.id)}>
+                <span className="lr-rail" style={{ background: LINE_COLORS[line] }}>
+                  <span className="lr-node" style={{ borderColor: LINE_COLORS[line] }} />
+                  {i < lineStations.length - 1 && <span className="lr-line" style={{ background: LINE_COLORS[line] }} />}
+                </span>
+                <span className="pr-name">{s.name}{s.hub && <span className="hub-tag">换乘</span>}</span>
+                <LineBadges lines={s.lines.filter((l) => l !== line)} size={16} />
+              </button>
+            ))}
+          </div>
+        </React.Fragment>
+      )}
+    </SheetShell>
+  );
+}
+
+Object.assign(window, { ResultSheet, StationPicker, ToiletDetailSheet });
+
+  </script>
+  <script type="text/babel" data-src="app.jsx">
+// ─── App root, tab bar, placeholder screens ───
+
+function TabBar({ tab, onTab }) {
+  const tabs = [
+    { key: 'home', label: '首页', icon: Ic.home },
+    { key: 'map', label: '地铁图', icon: Ic.map },
+    { key: 'me', label: '我的', icon: Ic.user },
+  ];
+  return (
+    <div className="tabbar glass">
+      {tabs.map((t) => {
+        const on = tab === t.key;
+        return (
+          <button key={t.key} className={'tab' + (on ? ' on' : '')} onClick={() => onTab(t.key)}>
+            <span className="tab-ic">{t.icon({ width: 24, height: 24 })}</span>
+            <span className="tab-label">{t.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function Placeholder({ icon, title, sub }) {
+  return (
+    <div className="screen-pad" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh', textAlign: 'center', gap: 14 }}>
+      <div className="ph-mark glass">{icon({ width: 34, height: 34 })}</div>
+      <div>
+        <div style={{ fontSize: 21, fontWeight: 700, color: 'var(--ink-1)' }}>{title}</div>
+        <div style={{ fontSize: 14, color: 'var(--ink-3)', marginTop: 6, lineHeight: 1.6, maxWidth: 240 }}>{sub}</div>
+      </div>
+      <span className="soon-pill">即将上线</span>
+    </div>
+  );
+}
+
+function App() {
+  const [st, setSt] = React.useState({
+    cur: '人民广场', dest: null, gender: 'm', need: 'pee', hold: 8, locating: false,
+  });
+  const set = (p) => setSt((s) => ({ ...s, ...p }));
+  const [tab, setTab] = React.useState('home');
+  const [sheet, setSheet] = React.useState(null); // 'result' | {pick:'cur'|'dest'}
+  const [detail, setDetail] = React.useState(null); // {toilet, station, ...} ranked entry
+
+  return (
+    <div className="app">
+      <div className="bg">
+        <span className="orb o1" /><span className="orb o2" /><span className="orb o3" />
+        <span className="orb o4" /><span className="orb o5" />
+      </div>
+
+      <div className="scroll" key={tab}>
+        {tab === 'home' && (
+          <HomeScreen st={st} set={set}
+            onSearch={() => setSheet('result')}
+            onPick={(kind) => setSheet({ pick: kind })} />
+        )}
+        {tab === 'map' && <Placeholder icon={Ic.map} title="上海地铁全图"
+          sub="放大查看每一站的厕所位置。地图功能正在绘制中。" />}
+        {tab === 'me' && <Placeholder icon={Ic.user} title="我的"
+          sub="登录后可收藏常用站、手动添加 / 分享厕所信息。1.0 暂未开放。" />}
+      </div>
+
+      <TabBar tab={tab} onTab={setTab} />
+
+      {sheet === 'result' && <ResultSheet st={st} onClose={() => setSheet(null)} onOpenToilet={(r) => setDetail(r)} />}
+      {detail && <ToiletDetailSheet rank={detail} onClose={() => setDetail(null)} />}
+      {sheet && sheet.pick && (
+        <StationPicker kind={sheet.pick} current={sheet.pick === 'cur' ? st.cur : st.dest}
+          refStation={sheet.pick === 'dest' ? st.cur : null}
+          onSelect={(id) => { set(sheet.pick === 'cur' ? { cur: id } : { dest: id }); setSheet(null); }}
+          onClose={() => setSheet(null)} />
+      )}
+    </div>
+  );
+}
+
+function Root() {
+  if (window.__NATIVE__) {
+    return <div className="native-shell"><App /></div>;
+  }
+  return (
+    <div className="stage">
+      <IOSDevice>
+        <App />
+      </IOSDevice>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
+
+  </script>
+</body>
+</html>
