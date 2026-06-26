@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
 <title>沪屙屙</title>
-<!-- iOS 添加到主屏幕：全屏 App 体验 -->
+<!-- 添加到主屏幕：全屏 App 体验 -->
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -34,7 +34,7 @@
     background: #eaf2f4;
     overscroll-behavior: none;
   }
-  #root, .native-shell { height: 100%; }
+  #root, .native-shell { height: 100vh; height: 100dvh; }
 
   /* ── app shell (fills the phone) ── */
   .app { position: relative; height: 100%; overflow: hidden; }
@@ -43,7 +43,7 @@
     -webkit-overflow-scrolling: touch; z-index: 2;
   }
   .scroll::-webkit-scrollbar { display: none; }
-  /* respect the notch / dynamic island and home bar */
+  /* respect display cutouts and system gesture areas */
   .screen-pad { padding: calc(env(safe-area-inset-top) + 22px) 16px calc(env(safe-area-inset-bottom) + 120px); }
 
   /* ── animated colorful background ── */

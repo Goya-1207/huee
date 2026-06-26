@@ -81,16 +81,7 @@ function App() {
 }
 
 function Root() {
-  if (window.__NATIVE__) {
-    return <div className="native-shell"><App /></div>;
-  }
-  return (
-    <div className="stage">
-      <IOSDevice>
-        <App />
-      </IOSDevice>
-    </div>
-  );
+  return <div className="native-shell"><App /></div>;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
