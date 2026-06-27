@@ -268,7 +268,7 @@ function StationPicker({ kind, current, refStation, onSelect, onClose }) {
           </div>
         </React.Fragment>
       ) : (
-        <React.Fragment>
+        <div className="sheet-body picker-list line-list">
           <div className="line-strip">
             {LINE_ORDER.map((n) => {
               const on = line === n;
@@ -280,8 +280,7 @@ function StationPicker({ kind, current, refStation, onSelect, onClose }) {
               );
             })}
           </div>
-          <div className="sheet-body picker-list line-list">
-            <div className="line-head" style={{ borderColor: LINE_COLORS[line], display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="line-head" style={{ borderColor: LINE_COLORS[line], display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <LineDot n={line} size={22} />
                 <span>{lineName(line)} · 共 {lineStations.length} 站</span>
@@ -301,8 +300,7 @@ function StationPicker({ kind, current, refStation, onSelect, onClose }) {
                 <LineBadges lines={s.lines.filter((l) => l !== line)} size={16} />
               </button>
             ))}
-          </div>
-        </React.Fragment>
+        </div>
       )}
     </SheetShell>
   );
