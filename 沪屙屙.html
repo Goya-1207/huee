@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>沪屙屙 · 上海地铁找厕所</title>
+<title>屙了么 · 上海地铁找厕所</title>
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
@@ -66,14 +66,15 @@
 
   /* ── brand header ── */
   .brand { display: flex; align-items: center; gap: 12px; padding: 4px 4px 20px; }
-  .brand-mark {
-    width: 46px; height: 46px; border-radius: 15px; flex-shrink: 0;
-    background: linear-gradient(150deg, var(--brand), var(--brand-deep));
-    color: #fff; display: grid; place-items: center;
-    box-shadow: 0 6px 16px oklch(0.6 0.12 205 / 0.4);
+  .brand-name {
+    font-size: 40px; font-weight: 900; letter-spacing: 4px; line-height: 1.05;
+    background: linear-gradient(115deg, var(--brand) 0%, var(--brand-deep) 55%, #5F259F 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+    text-shadow: 0 4px 18px oklch(0.6 0.12 205 / 0.22);
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   }
-  .brand-name { font-size: 26px; font-weight: 800; letter-spacing: 2px; color: var(--ink-1); line-height: 1.1; }
-  .brand-tag { font-size: 12.5px; font-weight: 600; color: var(--ink-3); margin-top: 2px; letter-spacing: 0.5px; white-space: nowrap; }
+  .brand-tag { font-size: 12.5px; font-weight: 600; color: var(--ink-3); margin-top: 6px; letter-spacing: 3px; white-space: nowrap; }
 
   /* ── section label ── */
 
@@ -175,7 +176,7 @@
 
   /* ── tab bar ── */
   .tabbar {
-    position: absolute; left: 14px; right: 14px; bottom: calc(env(safe-area-inset-bottom) + 12px);
+    position: absolute; left: 14px; right: 14px; bottom: calc(env(safe-area-inset-bottom) + 2px);
     height: 64px; z-index: 40;
     display: flex; padding: 0 6px; border-radius: 26px;
     background: rgba(255,255,255,0.62);
@@ -290,7 +291,8 @@
   .map-coverage-badge { position: absolute; top: 56px; left: 14px; z-index: 6;
     font-size: 11px; font-weight: 600; color: var(--ink-2); padding: 6px 11px; border-radius: 10px; }
   .maplibregl-ctrl-top-left { top: 96px; left: 8px; }
-  .map-card { position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 7;
+  .map-card { position: absolute; left: 12px; right: 12px; z-index: 41;
+    bottom: calc(env(safe-area-inset-bottom) + 82px);
     padding: 14px 16px; border-radius: 18px; box-shadow: 0 8px 32px rgba(0,0,0,0.18);
     max-height: 46%; overflow-y: auto; animation: mcard 0.22s cubic-bezier(.2,.8,.2,1); }
   @keyframes mcard { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -315,6 +317,25 @@
   .gps-card.err .gps-label { color: oklch(0.6 0.16 35); }
   .gps-card.err .gps-use { color: oklch(0.6 0.16 35); background: oklch(0.7 0.16 35 / 0.12); }
   .gps-dist { font-size: 12px; font-weight: 700; color: var(--brand); background: var(--brand-tint); padding: 2px 8px; border-radius: 7px; white-space: nowrap; }
+
+  /* ── 附近多站列表 ── */
+  .gps-multi {
+    border: 1.5px solid var(--brand); background: rgba(255,255,255,0.7);
+    border-radius: 18px; padding: 6px 6px 4px; margin: 0 0 14px;
+    box-shadow: 0 6px 18px oklch(0.66 0.11 205 / 0.16);
+  }
+  .gps-multi-head {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px;
+    font-size: 12.5px; font-weight: 700; color: var(--ink-3);
+  }
+  .gps-multi-head .gps-radar { width: 16px; height: 16px; flex-shrink: 0; }
+  .gps-multi-head .gps-dot { width: 9px; height: 9px; }
+  .gps-near-row {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    padding: 12px; border: none; background: transparent; cursor: pointer; font-family: inherit;
+    border-radius: 12px; border-top: 0.5px solid rgba(60,60,67,0.08);
+  }
+  .gps-near-row:active { background: var(--brand-tint); }
   .gps-radar { position: relative; width: 36px; height: 36px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
   .gps-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 0 4px var(--brand-tint); position: relative; z-index: 2; }
   .gps-wave {
@@ -1854,9 +1875,8 @@ function HomeScreen({ st, set, onSearch, onPick }) {
   return (
     <div className="screen-pad">
       <div className="brand">
-        <div className="brand-mark">{Ic.drop({ width: 22, height: 22 })}</div>
         <div>
-          <div className="brand-name">沪屙屙</div>
+          <div className="brand-name">屙了么</div>
           <div className="brand-tag">上海地铁 · 找厕所</div>
         </div>
       </div>
@@ -2122,18 +2142,24 @@ function haversineKm(lat1, lng1, lat2, lng2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-function nearestStationId(coords, lat, lng) {
-  let best = null, bestD = Infinity;
+// 列出半径内的车站（按距离升序，最多 8 个）；范围内一个都没有时退而取最近一个。
+function nearbyStations(coords, lat, lng, radiusKm) {
+  const all = [];
   for (const id in coords) {
     const c = coords[id];
-    const d = haversineKm(lat, lng, c.lat, c.lng);
-    if (d < bestD) { bestD = d; best = id; }
+    all.push({ id, km: haversineKm(lat, lng, c.lat, c.lng) });
   }
-  return best ? { id: best, km: bestD } : null;
+  all.sort((a, b) => a.km - b.km);
+  const within = all.filter((s) => s.km <= radiusKm).slice(0, 8);
+  return within.length ? within : all.slice(0, 1);
 }
 
-// 申请定位权限 → 返回最近车站 id。失败时 reject 一个带中文 message 的 Error。
-function locateNearestStation() {
+function fmtKm(km) {
+  return km < 1 ? Math.round(km * 1000) + ' 米' : km.toFixed(1) + ' 公里';
+}
+
+// 申请定位权限 → 返回附近车站列表（按距离升序）。失败时 reject 一个带中文 message 的 Error。
+function locateNearbyStations(radiusKm = 1) {
   return new Promise((resolve, reject) => {
     if (!('geolocation' in navigator)) {
       reject(new Error('当前环境不支持定位')); return;
@@ -2143,9 +2169,9 @@ function locateNearestStation() {
         const { latitude, longitude } = pos.coords;
         loadStationCoords()
           .then((coords) => {
-            const hit = nearestStationId(coords, latitude, longitude);
-            if (!hit) { reject(new Error('附近没有匹配到车站')); return; }
-            resolve(hit);
+            const list = nearbyStations(coords, latitude, longitude, radiusKm);
+            if (!list.length) { reject(new Error('附近没有匹配到车站')); return; }
+            resolve(list);
           })
           .catch(reject);
       },
@@ -2172,15 +2198,14 @@ function StationPicker({ kind, current, refStation, onSelect, onClose }) {
   const [reversed, setReversed] = React.useState(false);
   const [sortMode, setSortMode] = React.useState('hot'); // 'hot' | 'near'
   const [locating, setLocating] = React.useState(kind === 'cur');
-  const [located, setLocated] = React.useState(null);
-  const [locKm, setLocKm] = React.useState(null);
+  const [nearby, setNearby] = React.useState([]); // [{ id, km }] 按距离升序
   const [locErr, setLocErr] = React.useState('');
 
   const runLocate = React.useCallback(() => {
-    setLocating(true); setLocErr(''); setLocated(null); setLocKm(null);
+    setLocating(true); setLocErr(''); setNearby([]);
     let alive = true;
-    locateNearestStation()
-      .then(({ id, km }) => { if (!alive) return; setLocated(id); setLocKm(km); setLocating(false); })
+    locateNearbyStations(1)
+      .then((list) => { if (!alive) return; setNearby(list); setLocating(false); })
       .catch((err) => { if (!alive) return; setLocErr(err.message || '定位失败'); setLocating(false); });
     return () => { alive = false; };
   }, []);
@@ -2191,14 +2216,16 @@ function StationPicker({ kind, current, refStation, onSelect, onClose }) {
   }, [kind, runLocate]);
   React.useEffect(() => { setReversed(false); }, [line]);
 
-  const refId = refStation || (located && located) || current;
+  const refId = refStation || (nearby[0] && nearby[0].id) || current;
   const searching = !!q.trim();
   const list = searching
     ? STATIONS.filter((s) => s.name.includes(q.trim()))
     : sortStationsForPicker(sortMode, refId);
   const lineStations = (LINES[line] || []).map(byId).filter(Boolean);
   const displayStations = reversed ? [...lineStations].reverse() : lineStations;
-  const locatedSt = located ? byId(located) : null;
+  const nearbyHits = nearby.map((n) => ({ ...n, st: byId(n.id) })).filter((n) => n.st);
+  const firstHit = nearbyHits[0];
+  const multiNearby = nearbyHits.length > 1;
 
   return (
     <SheetShell onClose={onClose}
@@ -2206,26 +2233,44 @@ function StationPicker({ kind, current, refStation, onSelect, onClose }) {
       kicker={kind === 'cur' ? '默认定位你所在的车站' : '你要去哪一站？'}
       kickerIcon={kind === 'cur' ? Ic.near : Ic.flag}>
 
-      {kind === 'cur' && (
+      {kind === 'cur' && (locating || locErr || !multiNearby) && (
         <button className={'gps-card glass' + (locating ? ' loading' : '') + (locErr ? ' err' : '')}
-          onClick={() => { if (locErr) { runLocate(); return; } if (locatedSt) onSelect(locatedSt.id); }}
-          disabled={!locatedSt && !locErr}>
+          onClick={() => { if (locErr) { runLocate(); return; } if (firstHit) onSelect(firstHit.id); }}
+          disabled={!firstHit && !locErr}>
           <span className={'gps-radar' + (locating ? ' on' : '')}>
             <span className="gps-wave" /><span className="gps-wave d" /><span className="gps-dot" />
           </span>
           <span className="gps-text">
             <span className="gps-label">{locating ? '正在定位…' : locErr ? locErr : '检测到你在'}</span>
             <span className="gps-station">
-              {locating ? '搜索附近车站' : locErr ? '点此重新定位' : locatedSt && locatedSt.name}
-              {!locErr && locatedSt && <LineBadges lines={locatedSt.lines} size={16} />}
-              {!locating && !locErr && locKm != null && (
-                <span className="gps-dist">约 {locKm < 1 ? Math.round(locKm * 1000) + ' 米' : locKm.toFixed(1) + ' 公里'}</span>
+              {locating ? '搜索附近车站' : locErr ? '点此重新定位' : firstHit && firstHit.st.name}
+              {!locErr && firstHit && <LineBadges lines={firstHit.st.lines} size={16} />}
+              {!locating && !locErr && firstHit && (
+                <span className="gps-dist">约 {fmtKm(firstHit.km)}</span>
               )}
             </span>
           </span>
           {!locating && locErr && <span className="gps-use">重试 {Ic.arrow({ width: 16, height: 16 })}</span>}
-          {!locating && !locErr && locatedSt && <span className="gps-use">使用 {Ic.arrow({ width: 16, height: 16 })}</span>}
+          {!locating && !locErr && firstHit && <span className="gps-use">使用 {Ic.arrow({ width: 16, height: 16 })}</span>}
         </button>
+      )}
+
+      {kind === 'cur' && !locating && !locErr && multiNearby && (
+        <div className="gps-multi">
+          <div className="gps-multi-head">
+            <span className="gps-radar"><span className="gps-dot" /></span>
+            <span>附近 1 公里内有 {nearbyHits.length} 个车站，选一个</span>
+          </div>
+          {nearbyHits.map(({ id, km, st }) => (
+            <button key={id} className="gps-near-row" onClick={() => onSelect(id)}>
+              <span className="pr-name">{st.name}{st.hub && <span className="hub-tag">换乘</span>}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span className="gps-dist">{fmtKm(km)}</span>
+                <LineBadges lines={st.lines} size={18} />
+              </span>
+            </button>
+          ))}
+        </div>
       )}
 
       <div className="picker-tabs">

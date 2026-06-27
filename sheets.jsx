@@ -221,17 +221,22 @@ function haversineKm(lat1, lng1, lat2, lng2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-function nearestStationId(coords, lat, lng) {
-  let best = null, bestD = Infinity;
+function nearbyStations(coords, lat, lng, radiusKm) {
+  const all = [];
   for (const id in coords) {
     const c = coords[id];
-    const d = haversineKm(lat, lng, c.lat, c.lng);
-    if (d < bestD) { bestD = d; best = id; }
+    all.push({ id, km: haversineKm(lat, lng, c.lat, c.lng) });
   }
-  return best ? { id: best, km: bestD } : null;
+  all.sort((a, b) => a.km - b.km);
+  const within = all.filter((s) => s.km <= radiusKm).slice(0, 8);
+  return within.length ? within : all.slice(0, 1);
 }
 
-function locateNearestStation() {
+function fmtKm(km) {
+  return km < 1 ? Math.round(km * 1000) + ' 米' : km.toFixed(1) + ' 公里';
+}
+
+function locateNearbyStations(radiusKm = 1) {
   return new Promise((resolve, reject) => {
     if (!('geolocation' in navigator)) { reject(new Error('当前环境不支持定位')); return; }
     navigator.geolocation.getCurrentPosition(
@@ -239,9 +244,9 @@ function locateNearestStation() {
         const { latitude, longitude } = pos.coords;
         loadStationCoords()
           .then((coords) => {
-            const hit = nearestStationId(coords, latitude, longitude);
-            if (!hit) { reject(new Error('附近没有匹配到车站')); return; }
-            resolve(hit);
+            const list = nearbyStations(coords, latitude, longitude, radiusKm);
+            if (!list.length) { reject(new Error('附近没有匹配到车站')); return; }
+            resolve(list);
           })
           .catch(reject);
       },
@@ -263,15 +268,14 @@ function StationPicker({ kind, current, refStation, onSelect, onClose }) {
   const [reversed, setReversed] = React.useState(false);
   const [sortMode, setSortMode] = React.useState('hot'); // 'hot' | 'near'
   const [locating, setLocating] = React.useState(kind === 'cur');
-  const [located, setLocated] = React.useState(null);
-  const [locKm, setLocKm] = React.useState(null);
+  const [nearby, setNearby] = React.useState([]); // [{ id, km }] 按距离升序
   const [locErr, setLocErr] = React.useState('');
 
   const runLocate = React.useCallback(() => {
-    setLocating(true); setLocErr(''); setLocated(null); setLocKm(null);
+    setLocating(true); setLocErr(''); setNearby([]);
     let alive = true;
-    locateNearestStation()
-      .then(({ id, km }) => { if (!alive) return; setLocated(id); setLocKm(km); setLocating(false); })
+    locateNearbyStations(1)
+      .then((list) => { if (!alive) return; setNearby(list); setLocating(false); })
       .catch((err) => { if (!alive) return; setLocErr(err.message || '定位失败'); setLocating(false); });
     return () => { alive = false; };
   }, []);
@@ -282,14 +286,16 @@ function StationPicker({ kind, current, refStation, onSelect, onClose }) {
   }, [kind, runLocate]);
   React.useEffect(() => { setReversed(false); }, [line]);
 
-  const refId = refStation || (located && located) || current;
+  const refId = refStation || (nearby[0] && nearby[0].id) || current;
   const searching = !!q.trim();
   const list = searching
     ? STATIONS.filter((s) => s.name.includes(q.trim()))
     : sortStationsForPicker(sortMode, refId);
   const lineStations = (LINES[line] || []).map(byId).filter(Boolean);
   const displayStations = reversed ? [...lineStations].reverse() : lineStations;
-  const locatedSt = located ? byId(located) : null;
+  const nearbyHits = nearby.map((n) => ({ ...n, st: byId(n.id) })).filter((n) => n.st);
+  const firstHit = nearbyHits[0];
+  const multiNearby = nearbyHits.length > 1;
 
   return (
     <SheetShell onClose={onClose}
@@ -297,26 +303,44 @@ function StationPicker({ kind, current, refStation, onSelect, onClose }) {
       kicker={kind === 'cur' ? '默认定位你所在的车站' : '你要去哪一站？'}
       kickerIcon={kind === 'cur' ? Ic.near : Ic.flag}>
 
-      {kind === 'cur' && (
+      {kind === 'cur' && (locating || locErr || !multiNearby) && (
         <button className={'gps-card glass' + (locating ? ' loading' : '') + (locErr ? ' err' : '')}
-          onClick={() => { if (locErr) { runLocate(); return; } if (locatedSt) onSelect(locatedSt.id); }}
-          disabled={!locatedSt && !locErr}>
+          onClick={() => { if (locErr) { runLocate(); return; } if (firstHit) onSelect(firstHit.id); }}
+          disabled={!firstHit && !locErr}>
           <span className={'gps-radar' + (locating ? ' on' : '')}>
             <span className="gps-wave" /><span className="gps-wave d" /><span className="gps-dot" />
           </span>
           <span className="gps-text">
             <span className="gps-label">{locating ? '正在定位…' : locErr ? locErr : '检测到你在'}</span>
             <span className="gps-station">
-              {locating ? '搜索附近车站' : locErr ? '点此重新定位' : locatedSt && locatedSt.name}
-              {!locErr && locatedSt && <LineBadges lines={locatedSt.lines} size={16} />}
-              {!locating && !locErr && locKm != null && (
-                <span className="gps-dist">约 {locKm < 1 ? Math.round(locKm * 1000) + ' 米' : locKm.toFixed(1) + ' 公里'}</span>
+              {locating ? '搜索附近车站' : locErr ? '点此重新定位' : firstHit && firstHit.st.name}
+              {!locErr && firstHit && <LineBadges lines={firstHit.st.lines} size={16} />}
+              {!locating && !locErr && firstHit && (
+                <span className="gps-dist">约 {fmtKm(firstHit.km)}</span>
               )}
             </span>
           </span>
           {!locating && locErr && <span className="gps-use">重试 {Ic.arrow({ width: 16, height: 16 })}</span>}
-          {!locating && !locErr && locatedSt && <span className="gps-use">使用 {Ic.arrow({ width: 16, height: 16 })}</span>}
+          {!locating && !locErr && firstHit && <span className="gps-use">使用 {Ic.arrow({ width: 16, height: 16 })}</span>}
         </button>
+      )}
+
+      {kind === 'cur' && !locating && !locErr && multiNearby && (
+        <div className="gps-multi">
+          <div className="gps-multi-head">
+            <span className="gps-radar"><span className="gps-dot" /></span>
+            <span>附近 1 公里内有 {nearbyHits.length} 个车站，选一个</span>
+          </div>
+          {nearbyHits.map(({ id, km, st }) => (
+            <button key={id} className="gps-near-row" onClick={() => onSelect(id)}>
+              <span className="pr-name">{st.name}{st.hub && <span className="hub-tag">换乘</span>}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span className="gps-dist">{fmtKm(km)}</span>
+                <LineBadges lines={st.lines} size={18} />
+              </span>
+            </button>
+          ))}
+        </div>
       )}
 
       <div className="picker-tabs">

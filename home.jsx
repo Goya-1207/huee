@@ -172,9 +172,8 @@ function HomeScreen({ st, set, onSearch, onPick }) {
   return (
     <div className="screen-pad">
       <div className="brand">
-        <div className="brand-mark">{Ic.drop({ width: 22, height: 22 })}</div>
         <div>
-          <div className="brand-name">沪屙屙</div>
+          <div className="brand-name">屙了么</div>
           <div className="brand-tag">上海地铁 · 找厕所</div>
         </div>
       </div>
