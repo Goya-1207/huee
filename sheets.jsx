@@ -184,6 +184,78 @@ function ToiletDetailSheet({ rank, onClose }) {
 // ────────────────────────────────────────────────────────────────
 // 选站器：GPS / 搜索 / 按线路
 // ────────────────────────────────────────────────────────────────
+const STATION_GEOJSON_URL = 'geo/shanghai_subway_station.geojson';
+let __stationCoordsPromise = null;
+
+function normStationName(name) {
+  return String(name || '').replace(/\s+/g, '').replace(/[·・]/g, '').replace(/站$/, '').trim();
+}
+
+function loadStationCoords() {
+  if (__stationCoordsPromise) return __stationCoordsPromise;
+  __stationCoordsPromise = fetch(STATION_GEOJSON_URL)
+    .then((r) => { if (!r.ok) throw new Error('车站坐标加载失败 ' + r.status); return r.json(); })
+    .then((gj) => {
+      const nameIdx = {};
+      for (const st of (STATIONS || [])) nameIdx[normStationName(st.name)] = st.id;
+      const coords = {};
+      for (const f of (gj.features || [])) {
+        const c = f.geometry && f.geometry.coordinates;
+        if (!Array.isArray(c) || c.length < 2) continue;
+        const props = f.properties || {};
+        const rawName = props.name || props.NAME || props.Name || props.station || '';
+        const id = byId(rawName) ? rawName : nameIdx[normStationName(rawName)];
+        if (id && !coords[id]) coords[id] = { lng: c[0], lat: c[1] };
+      }
+      return coords;
+    })
+    .catch((err) => { __stationCoordsPromise = null; throw err; });
+  return __stationCoordsPromise;
+}
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371, toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function nearestStationId(coords, lat, lng) {
+  let best = null, bestD = Infinity;
+  for (const id in coords) {
+    const c = coords[id];
+    const d = haversineKm(lat, lng, c.lat, c.lng);
+    if (d < bestD) { bestD = d; best = id; }
+  }
+  return best ? { id: best, km: bestD } : null;
+}
+
+function locateNearestStation() {
+  return new Promise((resolve, reject) => {
+    if (!('geolocation' in navigator)) { reject(new Error('当前环境不支持定位')); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        loadStationCoords()
+          .then((coords) => {
+            const hit = nearestStationId(coords, latitude, longitude);
+            if (!hit) { reject(new Error('附近没有匹配到车站')); return; }
+            resolve(hit);
+          })
+          .catch(reject);
+      },
+      (err) => {
+        const msg = err && err.code === err.PERMISSION_DENIED
+          ? '定位权限被拒绝'
+          : err && err.code === err.TIMEOUT ? '定位超时，请重试' : '定位失败，请重试';
+        reject(new Error(msg));
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  });
+}
+
 function StationPicker({ kind, current, refStation, onSelect, onClose }) {
   const [tab, setTab] = React.useState('line'); // 'line' | 'search'
   const [q, setQ] = React.useState('');
@@ -192,12 +264,22 @@ function StationPicker({ kind, current, refStation, onSelect, onClose }) {
   const [sortMode, setSortMode] = React.useState('hot'); // 'hot' | 'near'
   const [locating, setLocating] = React.useState(kind === 'cur');
   const [located, setLocated] = React.useState(null);
+  const [locKm, setLocKm] = React.useState(null);
+  const [locErr, setLocErr] = React.useState('');
+
+  const runLocate = React.useCallback(() => {
+    setLocating(true); setLocErr(''); setLocated(null); setLocKm(null);
+    let alive = true;
+    locateNearestStation()
+      .then(({ id, km }) => { if (!alive) return; setLocated(id); setLocKm(km); setLocating(false); })
+      .catch((err) => { if (!alive) return; setLocErr(err.message || '定位失败'); setLocating(false); });
+    return () => { alive = false; };
+  }, []);
 
   React.useEffect(() => {
     if (kind !== 'cur') return;
-    const tm = setTimeout(() => { setLocating(false); setLocated('人民广场'); }, 1100);
-    return () => clearTimeout(tm);
-  }, [kind]);
+    return runLocate();
+  }, [kind, runLocate]);
   React.useEffect(() => { setReversed(false); }, [line]);
 
   const refId = refStation || (located && located) || current;
@@ -216,18 +298,24 @@ function StationPicker({ kind, current, refStation, onSelect, onClose }) {
       kickerIcon={kind === 'cur' ? Ic.near : Ic.flag}>
 
       {kind === 'cur' && (
-        <button className={'gps-card glass' + (locating ? ' loading' : '')} onClick={() => locatedSt && onSelect(locatedSt.id)} disabled={!locatedSt}>
+        <button className={'gps-card glass' + (locating ? ' loading' : '') + (locErr ? ' err' : '')}
+          onClick={() => { if (locErr) { runLocate(); return; } if (locatedSt) onSelect(locatedSt.id); }}
+          disabled={!locatedSt && !locErr}>
           <span className={'gps-radar' + (locating ? ' on' : '')}>
             <span className="gps-wave" /><span className="gps-wave d" /><span className="gps-dot" />
           </span>
           <span className="gps-text">
-            <span className="gps-label">{locating ? '正在定位…' : '检测到你在'}</span>
+            <span className="gps-label">{locating ? '正在定位…' : locErr ? locErr : '检测到你在'}</span>
             <span className="gps-station">
-              {locating ? '搜索附近车站' : locatedSt && locatedSt.name}
-              {locatedSt && <LineBadges lines={locatedSt.lines} size={16} />}
+              {locating ? '搜索附近车站' : locErr ? '点此重新定位' : locatedSt && locatedSt.name}
+              {!locErr && locatedSt && <LineBadges lines={locatedSt.lines} size={16} />}
+              {!locating && !locErr && locKm != null && (
+                <span className="gps-dist">约 {locKm < 1 ? Math.round(locKm * 1000) + ' 米' : locKm.toFixed(1) + ' 公里'}</span>
+              )}
             </span>
           </span>
-          {!locating && locatedSt && <span className="gps-use">使用 {Ic.arrow({ width: 16, height: 16 })}</span>}
+          {!locating && locErr && <span className="gps-use">重试 {Ic.arrow({ width: 16, height: 16 })}</span>}
+          {!locating && !locErr && locatedSt && <span className="gps-use">使用 {Ic.arrow({ width: 16, height: 16 })}</span>}
         </button>
       )}
 
