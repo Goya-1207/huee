@@ -1402,20 +1402,20 @@ function findRoute(aId, bId) {
   const ck = aId + '→' + bId;
   if (_routeCache[ck] !== undefined) return _routeCache[ck];
 
-  const W_T = 1e6, W_S = 1e3;                       // 换乘 >> 站数 >> 晚换乘
-  const keyOf = (t, s, f) => t * W_T + s * W_S + (300 - f);
+  const W_T = 1e8, W_S = 1e5, W_P = 1e3;            // 换乘 >> 站数 >> 短驳 >> 晚换乘
+  const keyOf = (t, s, p, f) => t * W_T + s * W_S + p * W_P + (300 - f);
   const startLines = linesAtStation(aId);
   if (!startLines.length) return (_routeCache[ck] = null);
 
   const dist = {}, pq = [];
-  const relax = (station, line, t, s, f, prev, via) => {
-    const id = station + '|' + line, cost = keyOf(t, s, f);
+  const relax = (station, line, t, s, f, g, p, prev, via) => {
+    const id = station + '|' + line + '|' + Math.min(g, 3), cost = keyOf(t, s, p, f);
     if (dist[id] == null || cost < dist[id]) {
       dist[id] = cost;
-      pq.push({ station, line, transfers: t, stops: s, firstSeg: f, prev, via, cost });
+      pq.push({ station, line, transfers: t, stops: s, firstSeg: f, segLen: g, pen: p, prev, via, cost });
     }
   };
-  for (const L of startLines) relax(aId, L, 0, 0, 0, null, 'start');
+  for (const L of startLines) relax(aId, L, 0, 0, 0, 0, 0, null, 'start');
 
   const settled = new Set();
   let goal = null;
@@ -1423,19 +1423,21 @@ function findRoute(aId, bId) {
     let mi = 0;
     for (let i = 1; i < pq.length; i++) if (pq[i].cost < pq[mi].cost) mi = i;
     const cur = pq.splice(mi, 1)[0];
-    const cid = cur.station + '|' + cur.line;
+    const cid = cur.station + '|' + cur.line + '|' + Math.min(cur.segLen, 3);
     if (settled.has(cid)) continue;
     settled.add(cid);
     if (cur.station === bId) { goal = cur; break; }
-    // 坐一站（同线，站数 +1；首段未换乘前累计 firstSeg）
+    // 坐一站（同线，站数 +1；首段未换乘前累计 firstSeg；当前段 segLen +1）
     for (const to of neighborsOnLine(cur.station, cur.line)) {
       relax(to, cur.line, cur.transfers, cur.stops + 1,
-        cur.transfers === 0 ? cur.firstSeg + 1 : cur.firstSeg, cur, 'ride');
+        cur.transfers === 0 ? cur.firstSeg + 1 : cur.firstSeg,
+        cur.segLen + 1, cur.pen, cur, 'ride');
     }
-    // 换乘（同站换线，换乘 +1；firstSeg 冻结）
+    // 换乘（同站换线，换乘 +1；firstSeg 冻结；段重置；中间段过短则加惩罚）
+    const addPen = (cur.transfers >= 1 && cur.segLen <= 2) ? (3 - cur.segLen) : 0;
     for (const L2 of linesAtStation(cur.station)) {
       if (L2 === cur.line) continue;
-      relax(cur.station, L2, cur.transfers + 1, cur.stops, cur.firstSeg, cur, 'transfer');
+      relax(cur.station, L2, cur.transfers + 1, cur.stops, cur.firstSeg, 0, cur.pen + addPen, cur, 'transfer');
     }
   }
   if (!goal) return (_routeCache[ck] = null);
@@ -1477,14 +1479,26 @@ function meetsNeed(t, gender) {
 // 坐到一半为上厕所出站重进既费钱又费事，中途一律不推荐这类。
 function needsExit(t) { return t.area === '非付费区' || t.area === '站外'; }
 
-// 同站多个厕所 → 选最合适的一个（满足需求、优先站台、其次站厅、再站外）
+// 厕所是否在「你实际乘坐/换乘的线路」上。usedLines 为空时一律视为顺路。
+function onUsedLine(t, usedLines) {
+  if (!usedLines || !usedLines.length) return true;
+  return usedLines.includes(t.line);
+}
+
+// 同站多个厕所 → 选最合适的一个（顺路线优先 → 站台优先 → 步行近）
 // opts.noExitOnly：只在闸内可用的厕所里挑（中途站用），没有则返回 null。
+// opts.usedLines：你在该站实际用到的线路；不在这些线上的厕所排在后面。
 function bestToiletAt(st, gender, opts) {
   let ok = st.toilets.filter((t) => meetsNeed(t, gender));
   if (opts && opts.noExitOnly) ok = ok.filter((t) => !needsExit(t));
   if (!ok.length) return null;
+  const used = opts && opts.usedLines;
   const rankPos = { platform: 0, concourse: 1, outside: 2 };
-  ok.sort((a, b) => (rankPos[a.place] - rankPos[b.place]) || (a.walk - b.walk));
+  ok.sort((a, b) => {
+    const la = onUsedLine(a, used) ? 0 : 1, lb = onUsedLine(b, used) ? 0 : 1;
+    if (la !== lb) return la - lb;
+    return (rankPos[a.place] - rankPos[b.place]) || (a.walk - b.walk);
+  });
   return ok[0];
 }
 
@@ -1495,28 +1509,36 @@ function candidateStations(curId, destId) {
   if (destId) {
     const r = findRoute(curId, destId);
     if (r) {
-      // 路径上每个站，附带「到达该站的累计时间」与是否换乘点
-      return r.path.map((sid, i) => ({
-        st: byId(sid),
-        travel: r.cumTime[i],
-        isTransfer: r.transfers.some((tr) => tr.at === sid),
-        isCur: sid === curId,
-        isDest: sid === destId,
-        idx: i,
-      })).filter((x) => x.st);
+      // 路径上每个站，附带「到达该站的累计时间」、是否换乘点、你在该站实际用到的线路
+      return r.path.map((sid, i) => {
+        const arriveLine = i > 0 ? r.hopLine[i - 1] : null;
+        const departLine = i < r.hopLine.length ? r.hopLine[i] : null;
+        const usedLines = [arriveLine, departLine].filter((l) => l != null);
+        return {
+          st: byId(sid),
+          travel: r.cumTime[i],
+          isTransfer: r.transfers.some((tr) => tr.at === sid),
+          isCur: sid === curId,
+          isDest: sid === destId,
+          idx: i,
+          usedLines,
+        };
+      }).filter((x) => x.st);
     }
   }
   // 无终点 fallback
-  const out = [{ st: byId(curId), travel: 0, isTransfer: false, isCur: true, isDest: false, idx: 0 }];
+  const curLines = linesAtStation(curId);
+  const out = [{ st: byId(curId), travel: 0, isTransfer: false, isCur: true, isDest: false, idx: 0, usedLines: curLines }];
   const cur = byId(curId);
   if (cur) {
     const adj = adjacency();
-    const near = new Set();
-    for (const e of adj[curId] || []) near.add(e.to);
-    [...near].forEach((sid, k) => {
+    const near = new Map();
+    for (const e of adj[curId] || []) if (!near.has(e.to)) near.set(e.to, e.line);
+    let k = 0;
+    for (const [sid, line] of near) {
       const s = byId(sid);
-      if (s) out.push({ st: s, travel: PER_HOP, isTransfer: false, isCur: false, isDest: false, idx: 1 + k });
-    });
+      if (s) out.push({ st: s, travel: PER_HOP, isTransfer: false, isCur: false, isDest: false, idx: 1 + (k++), usedLines: [line] });
+    }
   }
   return out;
 }
@@ -1531,7 +1553,7 @@ function rankToilets(ctx) {
     const st = c.st;
     // 中途站（非当前、非终点）只在"不出闸"的厕所里挑——避免为上厕所刷卡出站重进。
     const midJourney = !c.isCur && !c.isDest;
-    const t = bestToiletAt(st, gender, { noExitOnly: midJourney });
+    const t = bestToiletAt(st, gender, { noExitOnly: midJourney, usedLines: c.usedLines });
     if (!t) continue;
 
     const totalMin = c.travel + t.walk;
@@ -1545,6 +1567,12 @@ function rankToilets(ctx) {
     if (t.place === 'platform') { score += 5; tags.push('站台层'); }
     else if (t.place === 'concourse') { score += 3; tags.push('站厅层'); }
     else { score -= 2; tags.push('站外'); }
+
+    // 顺路线惩罚：厕所不在你实际乘坐/换乘的线路上 → 要走到无关线路站台，扣分
+    if (!onUsedLine(t, c.usedLines)) {
+      score -= c.isDest ? 6 : 12;
+      tags.push('需走到' + lineName(t.line));
+    }
 
     // 策略角色 —— 占主导权重，保证榜首推荐与所选策略一致
     if (strat === 'near') {
