@@ -1473,9 +1473,15 @@ function meetsNeed(t, gender) {
   return !!t.m;
 }
 
+// 中途使用是否需要"出闸"——非付费区 / 站外的厕所要刷卡出站再进站，
+// 坐到一半为上厕所出站重进既费钱又费事，中途一律不推荐这类。
+function needsExit(t) { return t.area === '非付费区' || t.area === '站外'; }
+
 // 同站多个厕所 → 选最合适的一个（满足需求、优先站台、其次站厅、再站外）
-function bestToiletAt(st, gender) {
-  const ok = st.toilets.filter((t) => meetsNeed(t, gender));
+// opts.noExitOnly：只在闸内可用的厕所里挑（中途站用），没有则返回 null。
+function bestToiletAt(st, gender, opts) {
+  let ok = st.toilets.filter((t) => meetsNeed(t, gender));
+  if (opts && opts.noExitOnly) ok = ok.filter((t) => !needsExit(t));
   if (!ok.length) return null;
   const rankPos = { platform: 0, concourse: 1, outside: 2 };
   ok.sort((a, b) => (rankPos[a.place] - rankPos[b.place]) || (a.walk - b.walk));
@@ -1523,7 +1529,9 @@ function rankToilets(ctx) {
 
   for (const c of cands) {
     const st = c.st;
-    const t = bestToiletAt(st, gender);   // ★ 每站只取 1 个厕所 → 去重
+    // 中途站（非当前、非终点）只在"不出闸"的厕所里挑——避免为上厕所刷卡出站重进。
+    const midJourney = !c.isCur && !c.isDest;
+    const t = bestToiletAt(st, gender, { noExitOnly: midJourney });
     if (!t) continue;
 
     const totalMin = c.travel + t.walk;
@@ -1533,8 +1541,8 @@ function rankToilets(ctx) {
     // 基础分：越快到越好，但权重温和——不让「当前站」凭距离永远压倒策略目标
     let score = 50 - totalMin * 2;
 
-    // 位置：站台层离乘客最近
-    if (t.place === 'platform') { score += 8; tags.push('站台层'); }
+    // 位置：仅轻量微调（出闸代价已由 bestToiletAt 硬过滤），不盖过"就近/快"
+    if (t.place === 'platform') { score += 5; tags.push('站台层'); }
     else if (t.place === 'concourse') { score += 3; tags.push('站厅层'); }
     else { score -= 2; tags.push('站外'); }
 

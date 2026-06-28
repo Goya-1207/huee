@@ -1501,10 +1501,17 @@ function meetsNeed(t, gender) {
   return !!t.m;
 }
 
+// 中途使用是否需要"出闸"——非付费区 / 站外的厕所要刷卡出站再进站，
+// 坐到一半为上厕所出站重进既费钱又费事，中途一律不推荐这类。
+// 付费区、以及站厅(both，闸内可达) 都算"不出闸"。
+function needsExit(t) { return t.area === '非付费区' || t.area === '站外'; }
+
 // 同站多个厕所 → 选最合适的一个
 // 优先级：站台 > 付费区站厅 > 站厅(both) > 非付费区站厅 > 站外
-function bestToiletAt(st, gender) {
-  const ok = st.toilets.filter((t) => meetsNeed(t, gender));
+// opts.noExitOnly：只在闸内可用的厕所里挑（中途站用），没有则返回 null。
+function bestToiletAt(st, gender, opts) {
+  let ok = st.toilets.filter((t) => meetsNeed(t, gender));
+  if (opts && opts.noExitOnly) ok = ok.filter((t) => !needsExit(t));
   if (!ok.length) return null;
   const areaRank  = { '付费区': 0, '站厅': 1, '非付费区': 2, '站外': 3 };
   const placeRank = { platform: 0, concourse: 1, outside: 2 };
@@ -1559,31 +1566,32 @@ function rankToilets(ctx) {
 
   for (const c of cands) {
     const st = c.st;
-    const t = bestToiletAt(st, gender);   // ★ 每站只取 1 个厕所 → 去重
+    // 中途站（非当前、非终点）只在"不出闸"的厕所里挑——避免为上厕所刷卡出站重进；
+    // 当前站/终点站反正要下车，所有厕所都可选。
+    const midJourney = !c.isCur && !c.isDest;
+    const t = bestToiletAt(st, gender, { noExitOnly: midJourney });
     if (!t) continue;
 
     const totalMin = c.travel + t.walk;
     const inTime = totalMin <= hold;
     const tags = [];
 
-    // ── ① 时间评分（紧急程度加权）──
+    // ── ① 时间评分（紧急程度加权）—— 主导项 ──
     // hold 越小，每分钟路程的代价越高；随便逛时距离权重降低，质量因素更主导
     const urgW = hold <= 4 ? 5 : hold <= 12 ? 3 : hold <= 40 ? 1.5 : 0.8;
     let score = 50 - totalMin * urgW;
 
-    // ── ② 位置便携评分（出站代价 + 便利程度，合并计算）──
-    // 中途站：站台最优（不出闸不换层）；付费区站厅次之；非付费区/站外需出闸代价极高
-    // 终点/当前站：已打算下车，出不出闸无所谓，只考虑步行便利
-    const midJourney = !c.isCur && !c.isDest;
+    // ── ② 位置便携评分（仅做轻量微调，不再盖过"就近/快"）──
+    // 出闸代价已在 bestToiletAt 用硬过滤处理（中途不会出现需出闸的厕所），
+    // 这里只在闸内场景按"站台 > 付费区站厅"轻微区分换层便利，幅度压到 ±8 以内。
     if (t.place === 'platform') {
-      score += midJourney ? 28 : 14;
+      score += midJourney ? 8 : 5;          // 站台：不换层，最省事
     } else if (t.place === 'concourse' && t.area === '付费区') {
-      score += midJourney ? 18 : 9;
+      score += midJourney ? 4 : 3;          // 付费区站厅：闸内但要换层
     } else if (t.place === 'outside') {
-      score += midJourney ? -22 : -2;
+      score += midJourney ? -8 : -2;        // 站外（仅终点/当前站可能出现）
     } else {
-      // concourse 非付费区 / 站厅(both)——中途使用需出闸
-      score += midJourney ? -14 : 3;
+      score += midJourney ? 0 : 2;          // 非付费区/站厅(both)：仅终点/当前站
     }
 
     // 策略角色 —— 占主导权重，保证榜首推荐与所选策略一致
