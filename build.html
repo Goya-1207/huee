@@ -2051,6 +2051,38 @@ function normStationName(name) {
   return String(name || '').replace(/\s+/g, '').replace(/[·・]/g, '').replace(/站$/, '').trim();
 }
 
+// ── 坐标系纠偏：GCJ-02（geojson 源）→ WGS-84（浏览器定位用）──
+const _GCJ_A = 6378245.0, _GCJ_EE = 0.00669342162296594323;
+function _gDLat(x, y) {
+  let r = -100 + 2 * x + 3 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+  r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+  r += (20 * Math.sin(y * Math.PI) + 40 * Math.sin(y / 3 * Math.PI)) * 2 / 3;
+  r += (160 * Math.sin(y / 12 * Math.PI) + 320 * Math.sin(y * Math.PI / 30)) * 2 / 3;
+  return r;
+}
+function _gDLng(x, y) {
+  let r = 300 + x + 2 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+  r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+  r += (20 * Math.sin(x * Math.PI) + 40 * Math.sin(x / 3 * Math.PI)) * 2 / 3;
+  r += (150 * Math.sin(x / 12 * Math.PI) + 300 * Math.sin(x / 30 * Math.PI)) * 2 / 3;
+  return r;
+}
+function gcj02ToWgs84(lng, lat) {
+  if (lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271) return [lng, lat];
+  const delta = (L, T) => {
+    let dLat = _gDLat(L - 105, T - 35), dLng = _gDLng(L - 105, T - 35);
+    const radLat = T / 180 * Math.PI;
+    let magic = Math.sin(radLat); magic = 1 - _GCJ_EE * magic * magic;
+    const sq = Math.sqrt(magic);
+    dLat = (dLat * 180) / ((_GCJ_A * (1 - _GCJ_EE)) / (magic * sq) * Math.PI);
+    dLng = (dLng * 180) / (_GCJ_A / sq * Math.cos(radLat) * Math.PI);
+    return [dLng, dLat];
+  };
+  let wLng = lng, wLat = lat;
+  for (let i = 0; i < 3; i++) { const [dLng, dLat] = delta(wLng, wLat); wLng = lng - dLng; wLat = lat - dLat; }
+  return [wLng, wLat];
+}
+
 function loadStationCoords() {
   if (__stationCoordsPromise) return __stationCoordsPromise;
   __stationCoordsPromise = fetch(STATION_GEOJSON_URL)
@@ -2065,7 +2097,7 @@ function loadStationCoords() {
         const props = f.properties || {};
         const rawName = props.name || props.NAME || props.Name || props.station || '';
         const id = byId(rawName) ? rawName : nameIdx[normStationName(rawName)];
-        if (id && !coords[id]) coords[id] = { lng: c[0], lat: c[1] };
+        if (id && !coords[id]) { const [lng, lat] = gcj02ToWgs84(c[0], c[1]); coords[id] = { lng, lat }; }
       }
       return coords;
     })

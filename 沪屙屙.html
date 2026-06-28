@@ -2155,7 +2155,41 @@ function normStationName(name) {
   return String(name || '').replace(/\s+/g, '').replace(/[·・]/g, '').replace(/站$/, '').trim();
 }
 
-// 懒加载并缓存「车站 → 经纬度」索引（按 App 站点 id 归并）
+// ── 坐标系纠偏：GCJ-02（geojson 源）→ WGS-84（浏览器定位用）──
+// 站点 geojson 是 GCJ-02，浏览器 getCurrentPosition 返回 WGS-84，两者在上海差约
+// 480m。若不转换，找最近车站约 1/4 概率会选错相邻站，故此处必须转换后再比距离。
+const _GCJ_A = 6378245.0, _GCJ_EE = 0.00669342162296594323;
+function _gDLat(x, y) {
+  let r = -100 + 2 * x + 3 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+  r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+  r += (20 * Math.sin(y * Math.PI) + 40 * Math.sin(y / 3 * Math.PI)) * 2 / 3;
+  r += (160 * Math.sin(y / 12 * Math.PI) + 320 * Math.sin(y * Math.PI / 30)) * 2 / 3;
+  return r;
+}
+function _gDLng(x, y) {
+  let r = 300 + x + 2 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+  r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+  r += (20 * Math.sin(x * Math.PI) + 40 * Math.sin(x / 3 * Math.PI)) * 2 / 3;
+  r += (150 * Math.sin(x / 12 * Math.PI) + 300 * Math.sin(x / 30 * Math.PI)) * 2 / 3;
+  return r;
+}
+function gcj02ToWgs84(lng, lat) {
+  if (lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271) return [lng, lat];
+  const delta = (L, T) => {
+    let dLat = _gDLat(L - 105, T - 35), dLng = _gDLng(L - 105, T - 35);
+    const radLat = T / 180 * Math.PI;
+    let magic = Math.sin(radLat); magic = 1 - _GCJ_EE * magic * magic;
+    const sq = Math.sqrt(magic);
+    dLat = (dLat * 180) / ((_GCJ_A * (1 - _GCJ_EE)) / (magic * sq) * Math.PI);
+    dLng = (dLng * 180) / (_GCJ_A / sq * Math.cos(radLat) * Math.PI);
+    return [dLng, dLat];
+  };
+  let wLng = lng, wLat = lat;
+  for (let i = 0; i < 3; i++) { const [dLng, dLat] = delta(wLng, wLat); wLng = lng - dLng; wLat = lat - dLat; }
+  return [wLng, wLat];
+}
+
+// 懒加载并缓存「车站 → 经纬度」索引（按 App 站点 id 归并；坐标转成 WGS-84）
 function loadStationCoords() {
   if (__stationCoordsPromise) return __stationCoordsPromise;
   __stationCoordsPromise = fetch(STATION_GEOJSON_URL)
@@ -2164,14 +2198,17 @@ function loadStationCoords() {
       // 由 App 站点构建「归一化名 → id」索引
       const nameIdx = {};
       for (const st of (STATIONS || [])) nameIdx[normStationName(st.name)] = st.id;
-      const coords = {}; // appStationId -> { lng, lat }
+      const coords = {}; // appStationId -> { lng, lat }（WGS-84）
       for (const f of (gj.features || [])) {
         const c = f.geometry && f.geometry.coordinates;
         if (!Array.isArray(c) || c.length < 2) continue;
         const props = f.properties || {};
         const rawName = props.name || props.NAME || props.Name || props.station || '';
         const id = byId(rawName) ? rawName : nameIdx[normStationName(rawName)];
-        if (id && !coords[id]) coords[id] = { lng: c[0], lat: c[1] };
+        if (id && !coords[id]) {
+          const [lng, lat] = gcj02ToWgs84(c[0], c[1]);
+          coords[id] = { lng, lat };
+        }
       }
       return coords;
     })
@@ -2406,6 +2443,65 @@ const MAP_BRAND_COLOR = '#0085CA';
 const METRO_LINE_GEOJSON_URL = 'geo/shanghai_subway_line.geojson';
 const METRO_STATION_GEOJSON_URL = 'geo/shanghai_subway_station.geojson';
 
+// ── 坐标系纠偏：GCJ-02（火星坐标，国内地图源）→ WGS-84（底图/GPS 用）──
+// 本项目的地铁线路/站点 geojson 是 GCJ-02，而 OpenFreeMap/Esri 底图与浏览器
+// 定位都是 WGS-84，两者在上海差约 480m，是"线路整体偏移"的根因。
+// 这里把 geojson 坐标转回 WGS-84 后再叠加，即可与底图对齐。
+const GCJ_A = 6378245.0, GCJ_EE = 0.00669342162296594323;
+function _gcjTransLat(x, y) {
+  let r = -100 + 2 * x + 3 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+  r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+  r += (20 * Math.sin(y * Math.PI) + 40 * Math.sin(y / 3 * Math.PI)) * 2 / 3;
+  r += (160 * Math.sin(y / 12 * Math.PI) + 320 * Math.sin(y * Math.PI / 30)) * 2 / 3;
+  return r;
+}
+function _gcjTransLng(x, y) {
+  let r = 300 + x + 2 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+  r += (20 * Math.sin(6 * x * Math.PI) + 20 * Math.sin(2 * x * Math.PI)) * 2 / 3;
+  r += (20 * Math.sin(x * Math.PI) + 40 * Math.sin(x / 3 * Math.PI)) * 2 / 3;
+  r += (150 * Math.sin(x / 12 * Math.PI) + 300 * Math.sin(x / 30 * Math.PI)) * 2 / 3;
+  return r;
+}
+// 给定 GCJ-02 经纬度，返回相对 WGS-84 的偏移量 [dLng, dLat]
+function _gcjDelta(lng, lat) {
+  let dLat = _gcjTransLat(lng - 105, lat - 35);
+  let dLng = _gcjTransLng(lng - 105, lat - 35);
+  const radLat = lat / 180 * Math.PI;
+  let magic = Math.sin(radLat); magic = 1 - GCJ_EE * magic * magic;
+  const sqMagic = Math.sqrt(magic);
+  dLat = (dLat * 180) / ((GCJ_A * (1 - GCJ_EE)) / (magic * sqMagic) * Math.PI);
+  dLng = (dLng * 180) / (GCJ_A / sqMagic * Math.cos(radLat) * Math.PI);
+  return [dLng, dLat];
+}
+// GCJ-02 → WGS-84（迭代逼近，精度 < 0.5m）。境外坐标原样返回。
+function gcj02ToWgs84(lng, lat) {
+  if (lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271) return [lng, lat];
+  let wLng = lng, wLat = lat;
+  for (let i = 0; i < 3; i++) {
+    const [dLng, dLat] = _gcjDelta(wLng, wLat);
+    wLng = lng - dLng; wLat = lat - dLat;
+  }
+  return [wLng, wLat];
+}
+// 递归地把任意 GeoJSON 坐标数组从 GCJ-02 转成 WGS-84（就地新建，不改原对象）
+function convertCoordsGcjToWgs(coords) {
+  if (typeof coords[0] === 'number') {
+    const [lng, lat] = gcj02ToWgs84(coords[0], coords[1]);
+    return coords.length > 2 ? [lng, lat, ...coords.slice(2)] : [lng, lat];
+  }
+  return coords.map(convertCoordsGcjToWgs);
+}
+// 把一个 FeatureCollection 的全部几何坐标转成 WGS-84
+function fcGcjToWgs84(fc) {
+  if (!fc || !Array.isArray(fc.features)) return fc;
+  return {
+    ...fc,
+    features: fc.features.map((f) => (f && f.geometry && f.geometry.coordinates)
+      ? { ...f, geometry: { ...f.geometry, coordinates: convertCoordsGcjToWgs(f.geometry.coordinates) } }
+      : f),
+  };
+}
+
 // ── 地图样式 ──
 const ROAD_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 function satStyle() {
@@ -2496,6 +2592,14 @@ function normalizedLineDedupeKey(feature, lineKey) {
   return rawName || JSON.stringify(feature.geometry?.coordinates?.[0]?.[0] || []);
 }
 
+// 线要素的坐标点总数（LineString / MultiLineString），用于去重时择优保留完整几何。
+function countLineCoords(geom) {
+  if (!geom) return 0;
+  if (geom.type === 'LineString') return (geom.coordinates || []).length;
+  if (geom.type === 'MultiLineString') return (geom.coordinates || []).reduce((a, c) => a + (c ? c.length : 0), 0);
+  return 0;
+}
+
 function normalizeLineFeature(feature) {
   const props = { ...(feature.properties || {}) };
   const lineKey = lineKeyFromProps(props);
@@ -2561,7 +2665,8 @@ function addSupplementalLineFeatures(lineFeatures, stationFeatures) {
   const addLine = (lineKey, names) => {
     if (lineFeatures.some((f) => String(f.properties?.lineKey) === String(lineKey))) return;
     const coords = names.map((name) => coordIdx[normalizeStationName(name)]).filter(Boolean);
-    const fallback = SUPPLEMENTAL_LINE_COORDS[lineKey] || [];
+    // 站点坐标已是 WGS-84；硬编码 fallback 仍是 GCJ-02，需转换后才能与底图对齐。
+    const fallback = (SUPPLEMENTAL_LINE_COORDS[lineKey] || []).map((c) => gcj02ToWgs84(c[0], c[1]));
     const finalCoords = coords.length >= 2 ? coords : fallback;
     if (finalCoords.length < 2) return;
     lineFeatures.push({
@@ -2575,22 +2680,28 @@ function addSupplementalLineFeatures(lineFeatures, stationFeatures) {
 
 function prepareMetroGeoJSON(lineRaw, stationRaw) {
   const stationIdx = buildStationNameIndex();
-  const lines = assertFeatureCollection(lineRaw, '线路');
-  const stations = assertFeatureCollection(stationRaw, '站点');
+  // 源 geojson 是 GCJ-02，先整体转成 WGS-84 再处理，与底图/GPS 对齐（消除整体偏移）。
+  const lines = fcGcjToWgs84(assertFeatureCollection(lineRaw, '线路'));
+  const stations = fcGcjToWgs84(assertFeatureCollection(stationRaw, '站点'));
   const normalizedStations = {
     ...stations,
     features: stations.features.map((f) => normalizeStationFeature(f, stationIdx)),
   };
-  const lineSeen = new Set();
-  const normalizedLineFeatures = [];
+  // 同一条线在源数据里常有多个要素（如"上海地铁6号线"完整版 + "上海轨道交通6号线"残片），
+  // 按 lineKey 去重时要保留坐标点最多的那个，否则会留下只有几十个点的残片，
+  // 导致 6/8/16 号线只画出一小段甚至看不见。
+  const lineBest = new Map();   // key -> { feature, pts }
+  const lineOrder = [];
   for (const feature of lines.features) {
     if (shouldSkipLineFeature(feature)) continue;
     const normalized = normalizeLineFeature(feature);
     const key = normalizedLineDedupeKey(normalized, normalized.properties.lineKey);
-    if (lineSeen.has(key)) continue;
-    lineSeen.add(key);
-    normalizedLineFeatures.push(normalized);
+    const pts = countLineCoords(normalized.geometry);
+    const prev = lineBest.get(key);
+    if (!prev) { lineBest.set(key, { feature: normalized, pts }); lineOrder.push(key); }
+    else if (pts > prev.pts) { lineBest.set(key, { feature: normalized, pts }); }
   }
+  const normalizedLineFeatures = lineOrder.map((k) => lineBest.get(k).feature);
   addSupplementalLineFeatures(normalizedLineFeatures, normalizedStations.features);
   const normalizedLines = {
     ...lines,
