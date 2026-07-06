@@ -1,0 +1,93 @@
+<!--pages/test/test.wxml — 阶段 2 验证页-->
+<view class="container">
+
+  <!-- 数据概况 -->
+  <view class="card">
+    <view class="title">数据层自检</view>
+    <view class="row"><text>站点数</text><text>{{stationCount}}</text></view>
+    <view class="row"><text>厕所数</text><text>{{toiletCount}}</text></view>
+    <view class="row"><text>线路数</text><text>{{lineCount}}</text></view>
+  </view>
+
+  <!-- 输入区 -->
+  <view class="card">
+    <view class="title">推荐输入</view>
+    <view class="form-row">
+      <text class="label">当前站</text>
+      <input class="input" value="{{cur}}" bindinput="onCurInput" placeholder="如：人民广场"/>
+    </view>
+    <view class="form-row">
+      <text class="label">终点站</text>
+      <input class="input" value="{{dest}}" bindinput="onDestInput" placeholder="留空=无终点"/>
+    </view>
+    <view class="form-row">
+      <text class="label">性别</text>
+      <picker mode="selector" range="{{genderOptions}}" value="{{genderIndex}}" bindchange="onGenderChange">
+        <view class="picker">{{genderOptions[genderIndex]}}</view>
+      </picker>
+    </view>
+    <view class="form-row">
+      <text class="label">能憋(min)</text>
+      <slider min="1" max="60" value="{{hold}}" show-value bindchange="onHoldChange"/>
+    </view>
+    <button class="btn-primary" bindtap="runRecommend">运行 recommend()</button>
+    <button class="btn-secondary" bindtap="runFindRoute">单独测 findRoute()</button>
+  </view>
+
+  <!-- 快捷用例 -->
+  <view class="card">
+    <view class="title">快捷用例</view>
+    <view class="preset-grid">
+      <button size="mini" data-id="rmgq_xjh" bindtap="preset">人民广场→徐家汇</button>
+      <button size="mini" data-id="rmgq_ljz" bindtap="preset">人民广场→陆家嘴(急)</button>
+      <button size="mini" data-id="rmgq_only" bindtap="preset">人民广场(无终点)</button>
+      <button size="mini" data-id="jdz_jxl" bindtap="preset">嘉定北→锦绣路</button>
+      <button size="mini" data-id="hqs_ljz" bindtap="preset">虹桥火车站→陆家嘴</button>
+    </view>
+  </view>
+
+  <!-- 寻路信息 -->
+  <view class="card" wx:if="{{routeInfo}}">
+    <view class="title">findRoute 结果</view>
+    <view class="row"><text>路径</text><text class="path">{{routeInfo.path}}</text></view>
+    <view class="row"><text>站数</text><text>{{routeInfo.hops}}</text></view>
+    <view class="row"><text>换乘</text><text>{{routeInfo.transfers}}</text></view>
+    <view class="row"><text>预计</text><text>{{routeInfo.minutes}} 分钟</text></view>
+  </view>
+
+  <!-- 推荐结果 -->
+  <view class="card" wx:if="{{result}}">
+    <view class="title">recommend 结果</view>
+    <view class="row"><text>策略</text><text class="strat">{{result.strat}}</text></view>
+    <view class="row"><text>理由</text><text class="reason">{{result.reason}}</text></view>
+    <view class="row" wx:if="{{result.transferAt}}"><text>换乘站</text><text>{{result.transferAt}}</text></view>
+    <view class="row"><text>候选总数</text><text>{{result.count}}</text></view>
+  </view>
+
+  <!-- Top 5 推荐 -->
+  <view class="card" wx:if="{{result && result.top5.length}}">
+    <view class="title">Top 5 候选</view>
+    <view wx:for="{{result.top5}}" wx:key="rank" class="rec-item">
+      <view class="rec-head">
+        <text class="rec-rank">#{{item.rank}}</text>
+        <text class="rec-station">{{item.station}}</text>
+        <text class="rec-lines">[{{item.lines}}]</text>
+        <text class="rec-tags">{{item.tags}}</text>
+      </view>
+      <view class="rec-desc">{{item.desc}}</view>
+      <view class="rec-meta">
+        <text>{{item.area}} · {{item.place}}</text>
+        <text>路程 {{item.travel}}min → 总 {{item.total}}min</text>
+        <text>准时 {{item.inTime}}</text>
+        <text>评分 {{item.score}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 日志 -->
+  <view class="card">
+    <view class="title">调试日志</view>
+    <view wx:for="{{logs}}" wx:key="*this" class="log-line">{{item}}</view>
+  </view>
+
+</view>

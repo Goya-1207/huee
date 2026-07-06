@@ -1,2 +1,8 @@
 # Ignore local Claude settings
 .claude/
+
+# WeChat Mini Program 本地生成物
+miniprogram/miniprogram_npm/
+miniprogram/node_modules/
+miniprogram/project.private.config.json
+miniprogram/.cache/

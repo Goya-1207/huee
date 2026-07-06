@@ -1,0 +1,18 @@
+{
+  "description": "沪屙屙 · 上海地铁找厕所（小程序版）",
+  "miniprogramRoot": "./",
+  "compileType": "miniprogram",
+  "setting": {
+    "urlCheck": true,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "newFeature": true,
+    "autoAudits": false,
+    "coverView": true
+  },
+  "appid": "REPLACE_WITH_YOUR_APPID",
+  "projectname": "huee-miniprogram",
+  "libVersion": "3.0.0"
+}
