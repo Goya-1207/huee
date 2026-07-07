@@ -1,0 +1,49 @@
+<sheet-shell title="为你找到这些厕所" kicker="{{kicker}}" kicker-icon="near" bind:close="onClose">
+  <scroll-view class="sheet-body" scroll-y>
+    <view class="sheet-reason">{{reason}}</view>
+
+    <block wx:if="{{primary}}">
+      <view class="toilet-card primary" catchtap="onOpenPrimary">
+        <view class="tc-top">
+          <view class="tc-top-left">
+            <view class="tc-name">{{primary.name}}<line-badge lines="{{primary.lines}}" size="16" /></view>
+            <view class="tc-loc">{{primary.loc}}</view>
+          </view>
+          <view class="tc-walk">
+            <image class="tc-walk-ic" src="{{walkIconSrc}}" />
+            <text><text class="tc-walk-b">{{primary.totalMin}}</text> 分钟</text>
+          </view>
+        </view>
+        <view class="tc-stats">
+          <view wx:for="{{primary.chips}}" wx:key="text" class="tc-chip" style="{{item.color ? 'color:' + item.color + ';' : ''}}{{item.bg ? 'background:' + item.bg : ''}}">
+            <image wx:if="{{item.iconSrc}}" class="tc-chip-ic" src="{{item.iconSrc}}" />
+            <text>{{item.text}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{alts.length}}" class="alt-label">其他选择</view>
+      <view wx:for="{{alts}}" wx:key="key" class="toilet-card" data-idx="{{index}}" catchtap="onOpenAlt">
+        <view class="tc-top">
+          <view class="tc-top-left">
+            <view class="tc-name">{{item.name}}<line-badge lines="{{item.lines}}" size="16" /></view>
+            <view class="tc-loc">{{item.loc}}</view>
+          </view>
+          <view class="tc-walk">
+            <image class="tc-walk-ic" src="{{walkIconSrc}}" />
+            <text><text class="tc-walk-b">{{item.totalMin}}</text> 分钟</text>
+          </view>
+        </view>
+        <view class="tc-stats">
+          <view wx:for="{{item.chips}}" wx:for-item="chip" wx:key="text" class="tc-chip" style="{{chip.color ? 'color:' + chip.color + ';' : ''}}{{chip.bg ? 'background:' + chip.bg : ''}}">
+            <image wx:if="{{chip.iconSrc}}" class="tc-chip-ic" src="{{chip.iconSrc}}" />
+            <text>{{chip.text}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <view wx:else class="empty-hint">附近没找到匹配的厕所，试试放宽需求或时间</view>
+    <view style="height:8px"></view>
+  </scroll-view>
+</sheet-shell>

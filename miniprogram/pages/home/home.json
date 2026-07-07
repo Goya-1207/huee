@@ -1,0 +1,12 @@
+{
+  "navigationBarTitleText": "沪屙屙",
+  "usingComponents": {
+    "glass-card": "/components/glass-card/glass-card",
+    "line-badge": "/components/line-badge/line-badge",
+    "section-label": "/components/section-label/section-label",
+    "segmented": "/components/segmented/segmented",
+    "station-picker": "/components/station-picker/station-picker",
+    "result-sheet": "/components/result-sheet/result-sheet",
+    "toilet-detail": "/components/toilet-detail/toilet-detail"
+  }
+}

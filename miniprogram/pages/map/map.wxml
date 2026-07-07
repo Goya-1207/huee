@@ -1,0 +1,31 @@
+<!--pages/map/map.wxml-->
+<map
+  class="map"
+  longitude="{{center.longitude}}"
+  latitude="{{center.latitude}}"
+  scale="{{scale}}"
+  markers="{{mapMarkers}}"
+  polyline="{{mapPolylines}}"
+  bindmarkertap="onMarkerTap"
+  show-location="{{false}}"
+  enable-overlooking="{{false}}"
+>
+  <cover-view class="map-card" wx:if="{{selectedSt}}">
+    <cover-view class="mc-head">
+      <cover-view class="mc-title">
+        <cover-view class="mc-name">{{selectedSt.name}}</cover-view>
+        <cover-view wx:if="{{selectedSt.hub}}" class="mc-hub">换乘</cover-view>
+      </cover-view>
+      <cover-view class="mc-close" bindtap="closeCard">✕</cover-view>
+    </cover-view>
+    <cover-view class="mc-badges">
+      <cover-view wx:for="{{selectedSt.lines}}" wx:key="n" class="mc-dot" style="background:{{item.color}}">{{item.label}}</cover-view>
+    </cover-view>
+    <cover-view wx:if="{{selectedSt.toilets.length === 0}}" class="mc-empty">暂无厕所数据</cover-view>
+    <cover-view wx:for="{{selectedSt.toilets}}" wx:key="id" class="mc-row">
+      <cover-view class="mc-pos" style="color:{{item.posColor}}">{{item.posLabel}}</cover-view>
+      <cover-view class="mc-area" style="color:{{item.areaColor}}">{{item.area}}</cover-view>
+      <cover-view class="mc-desc">{{item.desc}}</cover-view>
+    </cover-view>
+  </cover-view>
+</map>

@@ -1,0 +1,65 @@
+<sheet-shell title="{{title}}" kicker="{{kicker}}" kicker-icon="{{kickerIcon}}" bind:close="onClose">
+  <view class="picker-tabs">
+    <view class="pt {{tab==='line'?'on':''}}" bindtap="onTabLine">按线路</view>
+    <view class="pt {{tab==='search'?'on':''}}" bindtap="onTabSearch">搜索站名</view>
+  </view>
+
+  <block wx:if="{{tab==='search'}}">
+    <view class="picker-search">
+      <image class="ps-ic" src="{{searchIcon}}" />
+      <input class="ps-input" value="{{q}}" bindinput="onQInput" placeholder="搜索站名…" />
+    </view>
+    <view wx:if="{{!q}}" class="sort-row">
+      <text class="sort-head">{{sortMode==='hot' ? '热门车站' : (hasRef ? ('离'+refName+'最近') : '热门车站')}}</text>
+      <view class="sort-toggle">
+        <view class="st-btn {{sortMode==='hot'?'on':''}}" bindtap="onSortHot">热门</view>
+        <view class="st-btn {{sortMode==='near'?'on':''}} {{!hasRef?'disabled':''}}" bindtap="onSortNear">最近</view>
+      </view>
+    </view>
+    <scroll-view class="sheet-body picker-list" scroll-y>
+      <view wx:for="{{list}}" wx:key="id" class="picker-row {{item.id===current?'on':''}}" data-id="{{item.id}}" bindtap="onSelect">
+        <view class="pr-name">
+          <image wx:if="{{item.hot}}" class="hot-dot" src="{{sparkleIcon}}" />
+          <text>{{item.name}}</text>
+          <text wx:if="{{item.hub}}" class="hub-tag">换乘</text>
+        </view>
+        <view class="pr-right">
+          <text wx:if="{{item.dist}}" class="pr-dist">{{item.dist}} 分</text>
+          <line-badge lines="{{item.lines}}" size="18" />
+        </view>
+      </view>
+      <view wx:if="{{list.length===0}}" class="empty-hint">没有找到「{{q}}」</view>
+    </scroll-view>
+  </block>
+
+  <block wx:else>
+    <view class="line-strip">
+      <view wx:for="{{lineStrip}}" wx:key="n" class="line-chip {{item.on?'on':''}}" style="{{item.on ? ('background:' + item.color + ';color:#fff') : ('color:' + item.color)}}" data-n="{{item.n}}" bindtap="onSetLine">
+        <view class="lc-dot" style="background:{{item.color}}"></view>
+        <text>{{item.label}}</text>
+      </view>
+    </view>
+    <view class="line-head" style="border-color:{{curLineColor}}">
+      <view class="line-head-l">
+        <line-badge lines="{{curLineArr}}" size="22" />
+        <text class="line-head-t">{{curLineName}} · 共 {{curLineCount}} 站</text>
+      </view>
+      <view class="swap-btn-small" bindtap="onToggleReversed">
+        <image src="{{swapIcon}}" />
+      </view>
+    </view>
+    <scroll-view class="sheet-body picker-list line-list" scroll-y>
+      <view wx:for="{{lineStations}}" wx:key="id" class="picker-row line-row {{item.id===current?'on':''}}" data-id="{{item.id}}" bindtap="onSelect">
+        <view class="lr-rail" style="background:{{curLineColor}}">
+          <view class="lr-node" style="border-color:{{curLineColor}}"></view>
+          <view wx:if="{{index < lineStations.length - 1}}" class="lr-line" style="background:{{curLineColor}}"></view>
+        </view>
+        <view class="pr-name">
+          <text>{{item.name}}</text>
+          <text wx:if="{{item.hub}}" class="hub-tag">换乘</text>
+        </view>
+        <line-badge lines="{{item.otherLines}}" size="16" />
+      </view>
+    </scroll-view>
+  </block>
+</sheet-shell>

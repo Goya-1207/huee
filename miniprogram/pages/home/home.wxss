@@ -1,0 +1,66 @@
+/* pages/home/home.wxss */
+.app { position: relative; height: 100vh; overflow: hidden; }
+.scroll { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+
+.gap-12 { height: 12px; }
+.gap-18 { height: 18px; }
+.gap-20 { height: 20px; }
+.gap-22 { height: 22px; }
+
+/* ── 路线卡 ── */
+.route-row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 13px 12px; border-radius: 16px; }
+.route-icon { width: 22px; height: 22px; flex-shrink: 0; }
+.route-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.route-label { font-size: 11.5px; font-weight: 600; color: var(--ink-3); letter-spacing: 0.3px; }
+.route-station { font-size: 18px; font-weight: 800; color: var(--ink-1); display: flex; align-items: center; gap: 8px; }
+.route-station.ph { font-size: 15.5px; font-weight: 600; color: var(--ink-4); }
+.route-chev { width: 18px; height: 18px; flex-shrink: 0; }
+.route-divider { position: relative; height: 1px; margin: 0 14px 0 52px; background: rgba(60,60,67,0.1); }
+.route-track { position: absolute; left: -29px; top: -16px; height: 32px; border-left: 2px dotted rgba(60,60,67,0.22); }
+.swap-btn {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 36px; border-radius: 50%; border: 0.5px solid rgba(0,0,0,0.06);
+  background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 3;
+}
+.swap-btn image { width: 18px; height: 18px; }
+.locate-btn {
+  display: flex; align-items: center; gap: 6px; margin: 6px 8px 6px auto; width: fit-content;
+  padding: 6px 13px; border-radius: 999px; background: rgba(120,120,128,0.12);
+  color: var(--ink-2); font-size: 12.5px; font-weight: 600;
+}
+.locate-btn.on { color: #0085CA; }
+.locate-dot { width: 8px; height: 8px; border-radius: 50%; background: #0085CA; }
+.locate-dot.pulse { animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.7); } }
+
+/* ── 憋多久滑块 ── */
+.wait-readout { display: flex; flex-direction: column; gap: 3px; margin-bottom: 14px; }
+.wait-big { font-size: 22px; font-weight: 800; }
+.wait-sub { font-size: 13px; color: var(--ink-3); }
+.wslider { position: relative; height: 28px; margin: 6px 0 2px; }
+.wslider-rail { position: absolute; top: 50%; left: 0; right: 0; height: 8px; transform: translateY(-50%); border-radius: 99px; background: rgba(120,120,128,0.18); }
+.wslider-fill { position: absolute; top: 50%; left: 0; height: 8px; transform: translateY(-50%); border-radius: 99px; }
+.wslider-snap { position: absolute; top: 50%; width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.9); transform: translate(-50%,-50%); box-shadow: 0 0 0 1px rgba(0,0,0,0.08); }
+.wslider-thumb { position: absolute; top: 50%; width: 26px; height: 26px; border-radius: 50%; background: #fff; border: 3px solid; transform: translate(-50%,-50%); box-shadow: 0 2px 8px rgba(0,0,0,0.22); }
+.wslider-ticks { position: relative; height: 20px; margin-top: 2px; }
+.wtick { position: absolute; top: 0; border: none; background: transparent; font-size: 12px; font-weight: 600; color: var(--ink-4); white-space: nowrap; padding: 2px 4px; }
+.wtick.on { color: var(--ink-1); font-weight: 800; }
+
+/* ── 自动策略 ── */
+.autoplan { display: flex; align-items: flex-start; gap: 12px; padding: 13px 15px; border-radius: 18px; background: rgba(255,255,255,0.55); }
+.autoplan-ic { width: 36px; height: 36px; flex-shrink: 0; border-radius: 11px; display: flex; align-items: center; justify-content: center; background: linear-gradient(150deg, var(--brand), var(--brand-deep)); }
+.autoplan-ic image { width: 20px; height: 20px; }
+.autoplan-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.autoplan-label { font-size: 13.5px; font-weight: 800; color: var(--ink-1); }
+.autoplan-reason { font-size: 12.5px; color: var(--ink-3); line-height: 1.5; }
+
+/* ── CTA ── */
+.cta-arrow { width: 22px; height: 22px; }
+.cta-hover { transform: scale(0.97); }
+
+.brand-map {
+  margin-left: auto; padding: 7px 14px; border-radius: 999px;
+  background: rgba(255,255,255,0.6); color: var(--brand);
+  font-size: 13px; font-weight: 700; border: 0.5px solid rgba(255,255,255,0.7);
+}

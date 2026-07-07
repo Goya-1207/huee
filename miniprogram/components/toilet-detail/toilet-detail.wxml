@@ -1,0 +1,52 @@
+<sheet-shell title="{{name}}" kicker="厕所详情" kicker-icon="drop" bind:close="onClose">
+  <scroll-view class="sheet-body" scroll-y>
+    <view class="td-summary">
+      <view class="td-station">
+        <text class="td-name">{{name}}</text>
+        <line-badge lines="{{lines}}" size="18" />
+        <text wx:if="{{hub}}" class="hub-tag">换乘</text>
+      </view>
+      <view class="td-walk">
+        <image class="td-walk-ic" src="{{walkIcon}}" />
+        <text><text class="td-walk-b">{{totalMin}}</text> 分钟可达</text>
+        <text wx:if="{{travelMin > 0}}" class="td-walk-sub">（含坐车 {{travelMin}} 分）</text>
+      </view>
+    </view>
+
+    <view class="td-section">
+      <view class="td-label">位置</view>
+      <view class="td-row">
+        <image class="td-ic" src="{{posIcon}}" />
+        <view class="td-row-text">
+          <view class="td-row-title">{{posLabel}}</view>
+          <view class="td-row-sub">{{desc}}</view>
+        </view>
+      </view>
+      <view class="td-row">
+        <image class="td-ic" src="{{nearIcon}}" />
+        <view class="td-row-text">
+          <view class="td-row-title">{{areaLine}}</view>
+          <view class="td-row-sub">步行约 {{walk}} 分钟到达</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="td-section">
+      <view class="td-label">设施</view>
+      <view class="td-facility-grid">
+        <view wx:for="{{facilities}}" wx:key="key" class="td-facility {{item.on ? '' : 'off'}}">
+          <image class="td-facility-ic" src="{{item.icon}}" />
+          <text class="td-facility-l">{{item.label}}</text>
+          <text class="td-facility-s">{{item.sub}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{closed}}" class="td-section">
+      <view class="td-note">⚠️ 该厕所可能正在改造或暂停使用，建议就近选择其他厕所。</view>
+    </view>
+
+    <view class="td-source">数据来源：上海地铁公开厕所分布信息 · 仅供参考</view>
+    <view style="height:12px"></view>
+  </scroll-view>
+</sheet-shell>

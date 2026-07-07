@@ -1,0 +1,3 @@
+<view class="lb">
+  <view wx:for="{{dots}}" wx:key="key" class="lb-dot" style="{{item.style}}">{{item.label}}</view>
+</view>

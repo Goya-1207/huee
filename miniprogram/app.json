@@ -1,5 +1,7 @@
 {
   "pages": [
+    "pages/home/home",
+    "pages/map/map",
     "pages/test/test"
   ],
   "window": {

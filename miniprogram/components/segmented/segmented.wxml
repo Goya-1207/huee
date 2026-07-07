@@ -1,0 +1,16 @@
+<view class="seg">
+  <view
+    wx:for="{{items}}"
+    wx:key="key"
+    class="seg-item {{value === item.key ? 'on' : ''}}"
+    style="{{value === item.key && item.color ? 'color:#fff' : ''}}"
+    data-key="{{item.key}}"
+    bindtap="onTap"
+  >
+    <view wx:if="{{value === item.key}}" class="seg-pill" style="{{item.color ? 'background:' + item.color : ''}}"></view>
+    <view class="seg-content">
+      <image wx:if="{{item.iconOff}}" class="seg-ic" src="{{value === item.key ? item.iconOn : item.iconOff}}" />
+      <text>{{item.label}}</text>
+    </view>
+  </view>
+</view>

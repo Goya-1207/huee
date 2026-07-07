@@ -6,3 +6,7 @@ miniprogram/miniprogram_npm/
 miniprogram/node_modules/
 miniprogram/project.private.config.json
 miniprogram/.cache/
+
+# 根目录微信工具本地配置（工程根在 miniprogram/，这些是本地导入生成）
+/project.config.json
+/project.private.config.json

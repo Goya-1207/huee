@@ -1,0 +1,13 @@
+.seg { display: flex; background: rgba(120,120,128,0.12); border-radius: 14px; padding: 4px; gap: 2px; }
+.seg-item {
+  flex: 1; height: 40px; border-radius: 11px; position: relative;
+  font-size: 15px; font-weight: 600; color: var(--ink-2);
+  display: flex; align-items: center; justify-content: center;
+}
+.seg-item.on { color: var(--ink-1); }
+.seg-pill {
+  position: absolute; inset: 0; background: #fff; border-radius: 11px; z-index: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.14), 0 0 0 0.5px rgba(0,0,0,0.04);
+}
+.seg-content { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.seg-ic { width: 18px; height: 18px; }

@@ -1,0 +1,113 @@
+<!--pages/home/home.wxml — 首页-->
+<view class="app">
+  <view class="bg">
+    <view class="orb o1"></view>
+    <view class="orb o2"></view>
+    <view class="orb o3"></view>
+    <view class="orb o4"></view>
+    <view class="orb o5"></view>
+  </view>
+
+  <scroll-view class="scroll" scroll-y="true">
+    <view class="screen-pad">
+
+      <view class="brand">
+        <view>
+          <view class="brand-name">屙了么</view>
+          <view class="brand-tag">上海地铁 · 找厕所</view>
+        </view>
+        <view class="brand-map" bindtap="goMap">地铁图</view>
+      </view>
+
+      <section-label icon="pin" label="你的路线"></section-label>
+      <glass-card padding="6px">
+        <view class="route-row" bindtap="onPickCur">
+          <image class="route-icon" src="{{curIconSrc}}" />
+          <view class="route-text">
+            <text class="route-label">我在这一站</text>
+            <view wx:if="{{curStation}}" class="route-station">
+              <text>{{curStation.name}}</text>
+              <line-badge lines="{{curStation.lines}}" size="17" />
+            </view>
+            <text wx:else class="route-station ph">选择你所在的站</text>
+          </view>
+          <image class="route-chev" src="{{chevRIconSrc}}" />
+        </view>
+
+        <view class="route-divider">
+          <view class="route-track"></view>
+          <view class="swap-btn" catchtap="onSwap">
+            <image src="{{swapIconSrc}}" />
+          </view>
+        </view>
+
+        <view class="route-row" bindtap="onPickDest">
+          <image class="route-icon" src="{{destIconSrc}}" />
+          <view class="route-text">
+            <text class="route-label">目的地</text>
+            <view wx:if="{{destStation}}" class="route-station">
+              <text>{{destStation.name}}</text>
+              <line-badge lines="{{destStation.lines}}" size="17" />
+            </view>
+            <text wx:else class="route-station ph">选择你要去的终点站</text>
+          </view>
+          <image class="route-chev" src="{{chevRIconSrc}}" />
+        </view>
+
+        <view class="locate-btn {{locating ? 'on' : ''}}" catchtap="onLocate">
+          <view class="locate-dot {{locating ? 'pulse' : ''}}"></view>
+          <text>{{locating ? '定位中…' : '重新定位'}}</text>
+        </view>
+      </glass-card>
+
+      <view class="gap-20" />
+      <section-label icon="drop" label="这次的需求" hint="快捷选项"></section-label>
+      <glass-card padding="14px">
+        <segmented options="{{genderOptions}}" value="{{gender}}" bind:change="onGenderChange"></segmented>
+        <view class="gap-12" />
+        <segmented options="{{needOptions}}" value="{{need}}" bind:change="onNeedChange"></segmented>
+      </glass-card>
+
+      <view class="gap-20" />
+      <section-label icon="clock" label="你还能憋多久" hint="拖动调节"></section-label>
+      <glass-card padding="16px 18px 16px">
+        <view class="wait-readout">
+          <text class="wait-big" style="color:{{sliderColor}}">{{waitStateText}}</text>
+          <view class="wait-sub">还能憋 <text style="color:{{sliderColor}};font-weight:700">{{waitHoldText}}</text></view>
+        </view>
+        <view class="wslider" catchtouchstart="onSliderStart" catchtouchmove="onSliderMove" catchtouchend="onSliderEnd">
+          <view class="wslider-rail"></view>
+          <view class="wslider-fill" style="width:{{sliderPos}}%;background:{{sliderColor}}"></view>
+          <view wx:for="{{snaps}}" wx:key="min" class="wslider-snap" style="left:{{item.left}}%"></view>
+          <view class="wslider-thumb" style="left:{{sliderPos}}%;border-color:{{sliderColor}}"></view>
+        </view>
+        <view class="wslider-ticks">
+          <view wx:for="{{snaps}}" wx:key="min" class="wtick {{item.on ? 'on' : ''}}" style="{{item.tickStyle}}" data-min="{{item.min}}" catchtap="onTickTap">{{item.label}}</view>
+        </view>
+      </glass-card>
+
+      <view class="gap-12" />
+      <view class="autoplan glass" wx:if="{{autoplan}}">
+        <view class="autoplan-ic">
+          <image src="{{autoplan.iconSrc}}" />
+        </view>
+        <view class="autoplan-text">
+          <text class="autoplan-label">{{autoplan.label}}</text>
+          <text class="autoplan-reason">{{autoplan.reason}}</text>
+        </view>
+      </view>
+
+      <view class="gap-22" />
+      <button class="cta" bindtap="onSearch" hover-class="cta-hover">
+        <text>寻找厕所</text>
+        <image class="cta-arrow" src="{{arrowIconSrc}}" />
+      </button>
+      <view class="gap-18" />
+
+    </view>
+  </scroll-view>
+
+  <station-picker wx:if="{{activeSheet==='picker'}}" kind="{{pickKind}}" current="{{pickKind==='cur'?cur:dest}}" ref-station="{{pickKind==='dest'?cur:''}}" bind:select="onPickerSelect" bind:close="closeSheet" />
+  <result-sheet wx:if="{{activeSheet==='result'}}" st="{{stObj}}" bind:opentoilet="onOpenToilet" bind:close="closeSheet" />
+  <toilet-detail wx:if="{{activeSheet==='detail'}}" rank="{{detailRank}}" bind:close="closeSheet" />
+</view>

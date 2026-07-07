@@ -1,0 +1,3 @@
+<view class="glass" style="{{padding ? 'padding:' + padding : ''}}">
+  <slot></slot>
+</view>

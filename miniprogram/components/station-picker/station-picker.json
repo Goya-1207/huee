@@ -1,0 +1,8 @@
+{
+  "component": true,
+  "styleIsolation": "isolated",
+  "usingComponents": {
+    "sheet-shell": "/components/sheet-shell/sheet-shell",
+    "line-badge": "/components/line-badge/line-badge"
+  }
+}

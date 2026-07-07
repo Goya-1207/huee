@@ -1,0 +1,5 @@
+<view class="sl">
+  <image wx:if="{{iconSrc}}" class="sl-ic" src="{{iconSrc}}" />
+  <text class="sl-label">{{label}}</text>
+  <text wx:if="{{hint}}" class="sl-hint">{{hint}}</text>
+</view>
