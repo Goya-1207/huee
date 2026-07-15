@@ -87,22 +87,28 @@
 - [ ] markers >100 个需做视野裁剪或聚合
 - [ ] 用 `cover-view`/`cover-image` 覆盖在原生 map 上
 
-### ⏳ 阶段 5：原生 API 适配（2-3 天）
-- [ ] `navigator.geolocation` → `wx.getLocation`
-- [ ] `localStorage` → `wx.getStorageSync/setStorageSync`
-- [ ] `fetch/XHR` → `wx.request`
-- [ ] `alert` → `wx.showModal`
-- [ ] `history.pushState` → `wx.navigateTo/redirectTo`
+### ✅ 阶段 5：原生 API 适配
+- [x] `navigator.geolocation` → `wx.getLocation({type:'gcj02'})` + Haversine 最近车站查找（`utils/location.js`）
+- [x] `localStorage` → `wx.getStorageSync/setStorageSync`（home.js 状态持久化：cur/dest/gender/need/hold）
+- [x] `fetch/XHR` → 不需要（纯离线应用，无网络请求）
+- [x] `alert` → `wx.showToast`（定位成功/失败提示）
+- [x] `history.pushState` → `wx.navigateTo`（阶段 3 已完成）
+- [x] 新增"我的"页面（`pages/user/`）+ tabBar 第三 Tab
 
-### ⏳ 阶段 6：包体积处理（1-2 天）
-- [ ] 检查 GeoJSON 体积（地铁线 + 站点）
-- [ ] 若 >1MB：方案 A 分包加载 / 方案 B 后端化（需 HTTPS 域名）/ 方案 C Douglas-Peucker 抽稀
+### ✅ 阶段 6：包体积处理
+- [x] 检查总大小：**377 KB**（远低于 2MB 主包限制）
+- [x] 最大文件 `metro-geo.js` 235 KB（已 DP 抽稀，20 线 390 站）
+- [x] 无需分包加载 / 后端化 / 进一步精简
 
-### ⏳ 阶段 7：提交审核与发布（1-3 天审核）
-- [ ] 类目选择：**工具**（个人主体可选，避开"交通出行"）
-- [ ] 上传代码（开发者工具）
-- [ ] mp.weixin.qq.com 提交审核
-- [ ] 审核通过后发布
+### ⏳ 阶段 7：提交审核与发布（需用户操作）
+- [ ] **填 AppID**：`project.config.json` 的 `"appid"` 字段
+- [ ] **微信开发者工具上传**：打开 `miniprogram/` 目录 -> 点"上传" -> 填版本号 1.0.0 + 备注
+- [ ] **mp.weixin.qq.com 后台**：
+  - [ ] 类目选择：**工具**（个人主体可选，避开"交通出行"）
+  - [ ] 隐私设置：勾选"位置信息"（用于定位最近车站）
+  - [ ] 提交审核
+- [ ] 审核通过后 -> 发布上线
+- [ ] （可选）审核前从 `app.json` pages 数组移除 `pages/test/test`（调试页，不影响功能）
 
 ## 六、个人主体限制提醒
 
@@ -118,15 +124,33 @@
 ```
 miniprogram/
 ├── app.js                    # 入口：onLaunch 数据自检
-├── app.json                  # 配置：页面/权限
+├── app.json                  # 配置：页面/权限/tabBar(首页+地铁图+我的)
 ├── app.wxss                  # 全局样式
 ├── sitemap.json              # 索引规则
 ├── project.config.json       # 工程配置（AppID 待填）
-├── pages/test/               # 阶段 2 验证页
-│   ├── test.js/wxml/wxss/json
+├── assets/
+│   ├── dot.png               # 地图 marker 占位图
+│   └── tab/                  # tabBar 图标（6 个 PNG）
+├── pages/
+│   ├── home/                 # 首页（路线卡/需求/憋多久/CTA）
+│   ├── map/                  # 地铁图（<map> + polyline + markers）
+│   ├── user/                 # 我的（数据概况/关于/使用提示）
+│   └── test/                 # 验证页（5 个快捷用例）
+├── components/               # 6 个自定义组件
+│   ├── glass-card/
+│   ├── line-badge/
+│   ├── section-label/
+│   ├── segmented/
+│   ├── sheet-shell/
+│   ├── result-sheet/
+│   ├── station-picker/
+│   └── toilet-detail/
 └── utils/
     ├── data.js               # 数据层（19 线 / 410 站 / 490 厕所）
-    └── strategy.js           # 策略层（findRoute/recommend/...）
+    ├── strategy.js           # 策略层（findRoute/recommend/...）
+    ├── location.js           # 定位（wx.getLocation + Haversine 最近站）
+    ├── metro-geo.js          # 预处理 GeoJSON（235KB，20 线 390 站）
+    └── icon.js               # SVG 图标 -> data URI
 ```
 
 ## 八、验证基线
