@@ -2,6 +2,7 @@
   "pages": [
     "pages/home/home",
     "pages/map/map",
+    "pages/user/user",
     "pages/test/test"
   ],
   "window": {
@@ -35,6 +36,12 @@
         "text": "地铁图",
         "iconPath": "assets/tab/tab-map.png",
         "selectedIconPath": "assets/tab/tab-map-on.png"
+      },
+      {
+        "pagePath": "pages/user/user",
+        "text": "我的",
+        "iconPath": "assets/tab/tab-user.png",
+        "selectedIconPath": "assets/tab/tab-user-on.png"
       }
     ]
   }
