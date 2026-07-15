@@ -17,5 +17,25 @@
   },
   "requiredPrivateInfos": ["getLocation"],
   "sitemapLocation": "sitemap.json",
-  "style": "v2"
+  "style": "v2",
+  "tabBar": {
+    "color": "#9CA0A8",
+    "selectedColor": "#0085CA",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页",
+        "iconPath": "assets/tab/tab-home.png",
+        "selectedIconPath": "assets/tab/tab-home-on.png"
+      },
+      {
+        "pagePath": "pages/map/map",
+        "text": "地铁图",
+        "iconPath": "assets/tab/tab-map.png",
+        "selectedIconPath": "assets/tab/tab-map-on.png"
+      }
+    ]
+  }
 }
