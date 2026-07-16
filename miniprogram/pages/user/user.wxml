@@ -42,6 +42,10 @@
       <text class="info-val">GCJ-02（腾讯地图）</text>
     </view>
     <view class="info-row">
+      <text>补充坐标</text>
+      <text class="info-val">© OpenStreetMap contributors</text>
+    </view>
+    <view class="info-row">
       <text>运行环境</text>
       <text class="info-val">微信小程序 · 离线运行</text>
     </view>

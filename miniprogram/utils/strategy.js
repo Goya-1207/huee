@@ -16,6 +16,8 @@ const HOLD_MIN = [1.5, 6, 12, 999];   // wait 档对应能憋的分钟
 const PER_HOP  = 2.5;                 // 每站平均区间运行
 const TRANSFER = 5;                   // 一次换乘耗时（步行+候车）
 const BOARD    = 2;                   // 平均候车
+const TRANSFER_DISCOMFORT = 2.5;      // 换乘的额外认知/步行负担（不计入真实行程时间）
+const SHORT_TRANSFER_PENALTY = 1.5;   // 避免只坐一两站就再次换乘
 
 // ── 线网邻接图（缓存）──
 let _adj = null;
@@ -47,34 +49,27 @@ function neighborsOnLine(sid, line) {
   return out;
 }
 
-// ── 路径规划 v4（无坐标）：最少换乘 → 最少站数 → 避免"短驳" → 尽量晚换乘 ──
-// 把字典序代价压成一个标量后跑 Dijkstra，四档权重互不串位：
-//   换乘(1e8) >> 站数(1e5) >> 短驳惩罚(1e3) >> 晚换乘微调(×1)
-//   · 短驳惩罚：两次换乘之间只坐 1~2 站的"中间段"会被惩罚——真实地铁导航
-//     （高德/百度/OTP）都规避这种"刚上车又下车换乘"的别扭路线。
-//     例：嘉定北→锦绣路 原本会 11→龙华→12 只坐 1 站→龙华中路→7，
-//     现在改走 11→江苏路→2→龙阳路→7，段长更均衡。
-//   · 惩罚权重 < 站数权重，所以只在"换乘数、站数都打平"时打破平局，
-//     绝不会为了避开短驳而多坐站。
-//   · segLen 进入状态去重键（封顶 3，≥3 一律算"不短"），保证 Dijkstra 最优性。
-// 返回 { path, hopLine, transfers:[{at,fromLine,toLine}], cumTime } —— 与旧版字段兼容。
+// ── 路径规划 v5：广义成本 Dijkstra ──
+// 成熟地图通常不把“少换乘”设为绝对优先级：一次额外换乘若能显著节省时间，仍应被选中。
+// 本实现优化：预计通行时间（区间+候车+换乘）+ 换乘不便 + 短驳惩罚；同成本时再少换乘、少站数。
+// cumTime 是实际预计到站时间，供厕所评分直接使用；不便项只用于路径选择，绝不虚增展示时间。
 const _routeCache = {};
 function findRoute(aId, bId) {
   if (!aId || !bId || aId === bId) return null;
   const ck = aId + '→' + bId;
   if (_routeCache[ck] !== undefined) return _routeCache[ck];
 
-  const W_T = 1e8, W_S = 1e5, W_P = 1e3;            // 换乘 >> 站数 >> 短驳 >> 晚换乘
-  const keyOf = (t, s, p, f) => t * W_T + s * W_S + p * W_P + (300 - f);
   const startLines = linesAtStation(aId);
   if (!startLines.length) return (_routeCache[ck] = null);
 
   const dist = {}, pq = [];
-  const relax = (station, line, t, s, f, g, p, prev, via) => {
-    const id = station + '|' + line + '|' + Math.min(g, 3), cost = keyOf(t, s, p, f);
+  const relax = (station, line, t, s, g, p, actual, prev, via) => {
+    const id = station + '|' + line + '|' + Math.min(g, 3);
+    const generalized = actual + t * TRANSFER_DISCOMFORT + p * SHORT_TRANSFER_PENALTY;
+    const cost = generalized * 1e6 + t * 1e3 + s * 10 + p;
     if (dist[id] == null || cost < dist[id]) {
       dist[id] = cost;
-      pq.push({ station, line, transfers: t, stops: s, firstSeg: f, segLen: g, pen: p, prev, via, cost });
+      pq.push({ station, line, transfers: t, stops: s, segLen: g, pen: p, actual, generalized, prev, via, cost });
     }
   };
   for (const L of startLines) relax(aId, L, 0, 0, 0, 0, 0, null, 'start');
@@ -89,11 +84,11 @@ function findRoute(aId, bId) {
     if (settled.has(cid)) continue;
     settled.add(cid);
     if (cur.station === bId) { goal = cur; break; }
-    // 坐一站（同线，站数 +1；首段未换乘前累计 firstSeg；当前段 segLen +1）
+    // 第一次上车计入平均候车；之后每站只累加区间运行时间。
     for (const to of neighborsOnLine(cur.station, cur.line)) {
-      relax(to, cur.line, cur.transfers, cur.stops + 1,
-        cur.transfers === 0 ? cur.firstSeg + 1 : cur.firstSeg,
-        cur.segLen + 1, cur.pen, cur, 'ride');
+      const board = cur.stops === 0 ? BOARD : 0;
+      relax(to, cur.line, cur.transfers, cur.stops + 1, cur.segLen + 1,
+        cur.pen, cur.actual + board + PER_HOP, cur, 'ride');
     }
     // 换乘（同站换线，换乘 +1；firstSeg 冻结；段重置；中间段过短则加惩罚）
     //   仅"中间段"（已换乘过一次、本段又要换乘，transfers>=1）的短段才罚，
@@ -101,7 +96,8 @@ function findRoute(aId, bId) {
     const addPen = (cur.transfers >= 1 && cur.segLen <= 2) ? (3 - cur.segLen) : 0;
     for (const L2 of linesAtStation(cur.station)) {
       if (L2 === cur.line) continue;
-      relax(cur.station, L2, cur.transfers + 1, cur.stops, cur.firstSeg, 0, cur.pen + addPen, cur, 'transfer');
+      relax(cur.station, L2, cur.transfers + 1, cur.stops, 0, cur.pen + addPen,
+        cur.actual + TRANSFER, cur, 'transfer');
     }
   }
   if (!goal) return (_routeCache[ck] = null);
@@ -115,12 +111,8 @@ function findRoute(aId, bId) {
     else if (c.via === 'transfer') transfers.push({ at: c.station, fromLine: p.line, toLine: c.line });
   }
   const cumTime = [0];
-  for (let i = 0; i < hopLine.length; i++) {
-    let seg = PER_HOP;
-    if (i > 0 && hopLine[i] !== hopLine[i - 1]) seg += TRANSFER;
-    cumTime.push(cumTime[i] + seg);
-  }
-  return (_routeCache[ck] = { path, hopLine, transfers, cumTime });
+  for (let i = 1; i < chain.length; i++) if (chain[i].via === 'ride') cumTime.push(chain[i].actual);
+  return (_routeCache[ck] = { path, hopLine, transfers, cumTime, generalizedCost: goal.generalized });
 }
 
 // A → B 通行时间（分钟）

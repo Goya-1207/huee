@@ -1,4 +1,10 @@
 .map { width: 100%; height: 100vh; }
+.map-notice {
+  position: absolute; top: 16px; left: 12px; right: 12px;
+  padding: 8px 12px; border-radius: 10px;
+  background: rgba(255, 247, 237, 0.95); color: #9a4f00;
+  font-size: 12px; text-align: center;
+}
 
 .map-card {
   position: absolute; left: 12px; right: 12px;

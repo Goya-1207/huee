@@ -102,6 +102,34 @@ const SUPPLEMENTAL_LINE_COORDS = {
     [121.530591, 31.016869], [121.530818, 31.002519], [121.521124, 30.991211],
   ],
 };
+
+// 坐标源未收录的站点：从 OpenStreetMap 站点要素核对后补充。
+// OSM 坐标为 WGS-84，写入小程序前统一转换到腾讯地图的 GCJ-02。
+// 徐泾东、浦东国际机场以公开站点坐标交叉核验；其余为 OSM 的 station/stop 要素中心。
+const SUPPLEMENTAL_STATION_WGS84 = {
+  '黄陂南路': [121.4679564, 31.2256562], '徐泾东': [121.2905, 31.1877],
+  '浦东国际机场': [121.8010, 31.1539], '罗南新村': [121.3527972, 31.3905792],
+  '美兰湖': [121.3452915, 31.4036756], '金吉路': [121.6247128, 31.2666619],
+  '光明路': [121.1125552, 31.2980927], '花桥': [121.0998583, 31.3012385],
+  '滴水湖': [121.9257641, 30.9093062], '临港大道': [121.9065641, 30.9259540],
+  '书院': [121.8463550, 30.9615776], '惠南东': [121.7895151, 31.0286244],
+  '惠南': [121.7573174, 31.0560030], '下沙': [121.5848189, 31.0567896],
+  '航头': [121.5920502, 31.0393345], '三鲁公路': [121.5230413, 31.0582930],
+  '闵瑞路': [121.5260673, 31.0502003], '浦航路': [121.5263231, 31.0431896],
+  '东城一路': [121.5278033, 31.0326638], '汇臻路': [121.5203001, 31.0274603],
+};
+function outOfChina(lng, lat) { return lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271; }
+function wgs84ToGcj02(lng, lat) {
+  if (outOfChina(lng, lat)) return [lng, lat];
+  const a = 6378245.0, ee = 0.00669342162296594323;
+  const transformLat = (x, y) => -100 + 2*x + 3*y + .2*y*y + .1*x*y + .2*Math.sqrt(Math.abs(x)) + (20*Math.sin(6*x*Math.PI) + 20*Math.sin(2*x*Math.PI))*2/3 + (20*Math.sin(y*Math.PI) + 40*Math.sin(y/3*Math.PI))*2/3 + (160*Math.sin(y/12*Math.PI) + 320*Math.sin(y*Math.PI/30))*2/3;
+  const transformLng = (x, y) => 300 + x + 2*y + .1*x*x + .1*x*y + .1*Math.sqrt(Math.abs(x)) + (20*Math.sin(6*x*Math.PI) + 20*Math.sin(2*x*Math.PI))*2/3 + (20*Math.sin(x*Math.PI) + 40*Math.sin(x/3*Math.PI))*2/3 + (150*Math.sin(x/12*Math.PI) + 300*Math.sin(x/30*Math.PI))*2/3;
+  let dLat = transformLat(lng - 105, lat - 35), dLng = transformLng(lng - 105, lat - 35);
+  const radLat = lat / 180 * Math.PI, magic = 1 - ee * Math.sin(radLat) ** 2, sqrtMagic = Math.sqrt(magic);
+  dLat = dLat * 180 / ((a * (1 - ee)) / (magic * sqrtMagic) * Math.PI);
+  dLng = dLng * 180 / (a / sqrtMagic * Math.cos(radLat) * Math.PI);
+  return [lng + dLng, lat + dLat];
+}
 function stationCoordIndex(stationFeatures) {
   const idx = {};
   for (const f of stationFeatures) {
@@ -233,10 +261,24 @@ stationFeatures.forEach((f, idx) => {
     toiletCount: st ? st.toilets.length : 0,
   });
 });
+// 原始 GeoJSON 无站点要素时，补入经过人工核对的站点中心坐标。
+const existingStationIds = new Set(markers.map((m) => m.stationId));
+for (const [stationId, coord] of Object.entries(SUPPLEMENTAL_STATION_WGS84)) {
+  if (existingStationIds.has(stationId)) continue;
+  const st = byId(stationId);
+  if (!st) continue;
+  const [longitude, latitude] = wgs84ToGcj02(coord[0], coord[1]);
+  markers.push({ id: stationFeatures.length + markers.length, stationId, name: st.name, latitude, longitude, hub: !!st.hub, toiletCount: st.toilets.length });
+}
 
 console.log('polylines:', polylines.length, '| markers:', markers.length, '| 跳过未匹配:', unmatched);
 const totalPoints = polylines.reduce((a, p) => a + p.points.length, 0);
 console.log('polyline 总点数:', totalPoints, '| 平均每线:', Math.round(totalPoints / polylines.length));
+const mappedStationIds = new Set(markers.map((m) => m.stationId));
+const unmappedStationIds = STATIONS.filter((st) => !mappedStationIds.has(st.id)).map((st) => st.id);
+if (unmappedStationIds.length) {
+  console.warn('未找到坐标的业务站点:', unmappedStationIds.length, unmappedStationIds.join('、'));
+}
 
 // 写 metro-geo.js
 const out = '// 自动生成，勿手改。由 scripts/build-metro-geo.js 从 geo/*.geojson 生成。\n' +
@@ -245,6 +287,8 @@ const out = '// 自动生成，勿手改。由 scripts/build-metro-geo.js 从 ge
     center: { longitude: 121.474, latitude: 31.231 },
     polylines: polylines,
     markers: markers,
+    // 坐标源未覆盖的站点不能伪造坐标；保留清单供 UI 和发布前校验使用。
+    unmappedStationIds: unmappedStationIds,
   }) + ';\n';
 const outPath = path.join(ROOT, 'miniprogram/utils/metro-geo.js');
 fs.writeFileSync(outPath, out);

@@ -139,13 +139,37 @@ Page({
   },
 
   onLocate() {
+    // 避免连续点击时发起多次定位请求；较晚返回的旧请求会覆盖较新的结果。
+    if (this.data.locating) return;
     this.setState({ locating: true });
-    locateAndPick().then((r) => {
+    locateAndPick({ maxDistance: 5000 }).then((r) => {
       this.setState({ locating: false, cur: r.stationId });
       wx.showToast({ title: r.name + '·' + r.distance + 'm', icon: 'none' });
-    }).catch(() => {
+    }).catch((err) => {
       this.setState({ locating: false });
-      wx.showToast({ title: '定位失败，请检查权限', icon: 'none' });
+      if (err && err.code === 'OUT_OF_RANGE') {
+        wx.showToast({ title: '附近 5 公里内没有地铁站，请手动选择', icon: 'none' });
+        return;
+      }
+      this._offerLocationSettings();
+    });
+  },
+
+  _offerLocationSettings() {
+    wx.getSetting({
+      success: (res) => {
+        if (res.authSetting['scope.userLocation'] === false) {
+          wx.showModal({
+            title: '需要定位权限',
+            content: '开启定位后，可自动选择离你最近的地铁站。',
+            confirmText: '去设置',
+            success: (modal) => { if (modal.confirm) wx.openSetting({}); },
+          });
+        } else {
+          wx.showToast({ title: '定位失败，请确认系统定位服务已开启', icon: 'none' });
+        }
+      },
+      fail: () => wx.showToast({ title: '定位失败，请手动选择车站', icon: 'none' }),
     });
   },
 
@@ -161,7 +185,7 @@ Page({
   },
   onOpenToilet(e) { this.setData({ detailRank: e.detail.rank, activeSheet: 'detail' }); },
   closeSheet() { this.setData({ activeSheet: '', detailRank: null }); },
-  goMap() { wx.navigateTo({ url: '/pages/map/map' }); },
+  goMap() { wx.switchTab({ url: '/pages/map/map' }); },
 
   // ── 滑块拖动 ──
   onSliderStart(e) { this._dragging = true; this._applyTouch(e, false); },

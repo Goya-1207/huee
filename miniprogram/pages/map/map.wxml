@@ -7,9 +7,13 @@
   markers="{{mapMarkers}}"
   polyline="{{mapPolylines}}"
   bindmarkertap="onMarkerTap"
+  bindcallouttap="onMarkerTap"
   show-location="{{false}}"
   enable-overlooking="{{false}}"
 >
+  <cover-view wx:if="{{unmappedStationCount}}" class="map-notice">
+    {{unmappedStationCount}} 个站点暂缺地图坐标，可在首页手动选择
+  </cover-view>
   <cover-view class="map-card" wx:if="{{selectedSt}}">
     <cover-view class="mc-head">
       <cover-view class="mc-title">

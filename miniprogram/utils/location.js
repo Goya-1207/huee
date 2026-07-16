@@ -27,13 +27,19 @@ function findNearestStation(lat, lng) {
 }
 
 // 调用 wx.getLocation({type:'gcj02'}) -> 找最近车站 -> Promise<result>
-function locateAndPick() {
+// maxDistance 用于避免用户离上海地铁极远时仍被错误地指向某个站点。
+function locateAndPick({ maxDistance = Infinity } = {}) {
   return new Promise((resolve, reject) => {
     wx.getLocation({
       type: 'gcj02',
       success: (res) => {
         const nearest = findNearestStation(res.latitude, res.longitude);
-        if (nearest) resolve(nearest);
+        if (nearest && nearest.distance <= maxDistance) resolve(nearest);
+        else if (nearest) {
+          const err = new Error('附近没有可用地铁站');
+          err.code = 'OUT_OF_RANGE';
+          reject(err);
+        }
         else reject(new Error('附近无地铁站点'));
       },
       fail: (err) => reject(err),

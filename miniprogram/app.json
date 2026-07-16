@@ -2,8 +2,7 @@
   "pages": [
     "pages/home/home",
     "pages/map/map",
-    "pages/user/user",
-    "pages/test/test"
+    "pages/user/user"
   ],
   "window": {
     "navigationBarTitleText": "沪屙屙",

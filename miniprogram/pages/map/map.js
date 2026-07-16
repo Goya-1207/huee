@@ -15,6 +15,7 @@ Page({
     mapPolylines: geo.polylines,
     mapMarkers: [],
     selectedSt: null,
+    unmappedStationCount: (geo.unmappedStationIds || []).length,
   },
 
   onLoad() {
