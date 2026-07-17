@@ -9,14 +9,17 @@
   </view>
 
   <scroll-view class="scroll" scroll-y="true">
-    <view class="screen-pad">
+    <view class="screen-pad home-pad">
 
       <view class="brand">
         <view>
-          <view class="brand-name">屙了么</view>
+          <view class="brand-art" aria-label="沪屙屙">
+            <text class="brand-art-char hu">沪</text>
+            <text class="brand-art-char e1">屙</text>
+            <text class="brand-art-char e2">屙</text>
+          </view>
           <view class="brand-tag">上海地铁 · 找厕所</view>
         </view>
-        <view class="brand-map" bindtap="goMap">地铁图</view>
       </view>
 
       <section-label icon="pin" label="你的路线"></section-label>
@@ -107,7 +110,7 @@
     </view>
   </scroll-view>
 
-  <station-picker wx:if="{{activeSheet==='picker'}}" kind="{{pickKind}}" current="{{pickKind==='cur'?cur:dest}}" ref-station="{{pickKind==='dest'?cur:''}}" bind:select="onPickerSelect" bind:close="closeSheet" />
+  <station-picker wx:if="{{activeSheet==='picker'}}" id="station-picker" kind="{{pickKind}}" current="{{pickKind==='cur'?cur:dest}}" ref-station="{{pickKind==='dest'?cur:''}}" nearby-stations="{{nearbyStationIds}}" locating="{{locating}}" location-error="{{locationError}}" bind:locate="onPickerLocate" bind:select="onPickerSelect" bind:close="closeSheet" />
   <result-sheet wx:if="{{activeSheet==='result'}}" st="{{stObj}}" bind:opentoilet="onOpenToilet" bind:close="closeSheet" />
   <toilet-detail wx:if="{{activeSheet==='detail'}}" rank="{{detailRank}}" bind:close="closeSheet" />
 </view>

@@ -2,9 +2,11 @@
   "pages": [
     "pages/home/home",
     "pages/map/map",
-    "pages/user/user"
+    "pages/user/user",
+    "pages/feedback/feedback"
   ],
   "window": {
+    "navigationStyle": "custom",
     "navigationBarTitleText": "沪屙屙",
     "navigationBarBackgroundColor": "#0085CA",
     "navigationBarTextStyle": "white",
@@ -16,9 +18,11 @@
     }
   },
   "requiredPrivateInfos": ["getLocation"],
+  "lazyCodeLoading": "requiredComponents",
   "sitemapLocation": "sitemap.json",
   "style": "v2",
   "tabBar": {
+    "custom": true,
     "color": "#9CA0A8",
     "selectedColor": "#0085CA",
     "backgroundColor": "#ffffff",

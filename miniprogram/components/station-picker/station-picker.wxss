@@ -2,6 +2,24 @@
 .pt { flex: 1; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink-2); }
 .pt.on { background: #fff; color: var(--ink-1); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
 
+.locate-card { box-sizing: border-box; width: 100%; min-height: 88rpx; margin: 0 0 18rpx; padding: 18rpx 20rpx; display: flex; align-items: center; gap: 16rpx; border: 3rpx solid rgba(0,156,177,.72); border-radius: 20rpx; background: rgba(255,255,255,.72); box-shadow: 0 8rpx 20rpx rgba(0,137,165,.09); overflow: hidden; }
+.locate-pulse { width: 42rpx; height: 42rpx; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(0,174,195,.12); flex-shrink: 0; }
+.locate-dot { width: 19rpx; height: 19rpx; border-radius: 50%; background: #00aec3; box-shadow: 0 0 0 6rpx rgba(0,174,195,.14); }
+.locate-card.scanning .locate-pulse { animation: locate-pulse 0.8s ease-in-out infinite; }
+@keyframes locate-pulse { 50% { transform: scale(1.22); background: rgba(0,174,195,.26); } }
+.locate-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4rpx; }
+.locate-label { font-size: 28rpx; font-weight: 750; color: #343940; }
+.locate-sub { font-size: 22rpx; color: #858d98; }
+.locate-action { flex-shrink: 0; padding: 11rpx 16rpx; border-radius: 999rpx; background: rgba(0,174,195,.12); color: #079caf; font-size: 25rpx; font-weight: 750; }
+.locate-action.disabled { color: #7c9a9e; }
+.locate-card.results { display: block; padding: 14rpx 18rpx 8rpx; }
+.locate-results-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4rpx 8rpx; color: #4d5965; font-size: 24rpx; font-weight: 750; }
+.locate-retry { color: #079caf; font-size: 22rpx; font-weight: 650; }
+.locate-results-list { max-height: 276rpx; }
+.locate-result-row { box-sizing: border-box; display: flex; align-items: center; gap: 14rpx; height: 92rpx; padding: 11rpx 4rpx; border-top: 1rpx solid rgba(0,133,160,.12); }
+.locate-result-row .locate-pulse { width: 36rpx; height: 36rpx; }
+.locate-result-row .locate-dot { width: 15rpx; height: 15rpx; box-shadow: 0 0 0 5rpx rgba(0,174,195,.14); }
+
 .picker-search { display: flex; align-items: center; gap: 8px; padding: 11px 14px; margin: 2px 0 12px; border-radius: 14px; background: rgba(255,255,255,0.55); border: 0.5px solid rgba(255,255,255,0.7); }
 .ps-ic { width: 18px; height: 18px; flex-shrink: 0; }
 .ps-input { flex: 1; font-size: 16px; color: var(--ink-1); }
@@ -16,12 +34,18 @@
 .hot-dot { width: 12px; height: 12px; display: inline-flex; margin-right: 4px; }
 .pr-dist { font-size: 12px; font-weight: 700; color: var(--brand); background: var(--brand-tint); padding: 3px 8px; border-radius: 7px; white-space: nowrap; }
 
-.sheet-body { display: flex; flex-direction: column; max-height: 55vh; }
+.sheet-body { display: flex; flex-direction: column; flex: 1; min-height: 0; max-height: 55vh; }
 .picker-list { gap: 0; }
+.picker-section { padding: 12px 12px 5px; color: var(--ink-3); font-size: 12px; font-weight: 800; }
+.nearby-panel { margin: 0 2px 12px; border: 1px solid rgba(0,133,202,0.15); border-radius: 14px; overflow: hidden; background: rgba(0,133,202,0.035); }
+.nearby-panel .picker-section { padding: 12px 12px 5px; }
+.nearby-panel .picker-row { padding-left: 12px; padding-right: 12px; }
 .picker-row { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 14px 12px; border-bottom: 0.5px solid rgba(60,60,67,0.08); border-radius: 12px; }
 .picker-row.on { background: var(--brand-tint); }
 .pr-name { font-size: 17px; font-weight: 600; color: var(--ink-1); display: flex; align-items: center; gap: 8px; }
 .pr-right { display: inline-flex; align-items: center; gap: 8px; }
+.fav-btn { width: 34rpx; height: 34rpx; line-height: 34rpx; text-align: center; border-radius: 50%; color: #9aa4b2; background: rgba(120,130,145,0.10); font-size: 28rpx; }
+.fav-btn.on { color: #D9A300; background: rgba(217,163,0,0.12); }
 .hub-tag { font-size: 10px; font-weight: 700; color: var(--brand); background: var(--brand-tint); padding: 2px 6px; border-radius: 6px; }
 
 .line-strip { display: flex; flex-wrap: wrap; gap: 7px; padding: 2px 2px 10px; }

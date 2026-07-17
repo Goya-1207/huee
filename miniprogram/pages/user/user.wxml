@@ -1,64 +1,12 @@
-<!--pages/user/user.wxml-->
-<view class="container">
-  <!-- 头部 -->
-  <view class="hero">
-    <image class="hero-icon" src="{{appIcon}}" mode="aspectFit"/>
-    <view class="hero-name">沪屙屙</view>
-    <view class="hero-sub">上海地铁找厕所 · v{{version}}</view>
+<view class="profile-page" wx:if="{{profile}}">
+  <view class="profile-hero"><image class="hero-icon" src="{{appIcon}}" /><view><view class="hero-title">我的偏好</view><view class="hero-sub">让每次推荐更懂你</view></view></view>
+  <view class="profile-card">
+    <view class="card-title">如厕偏好</view>
+    <view class="field-title">优先寻找</view><view class="choice-row"><view wx:for="{{genders}}" wx:key="key" class="choice {{profile.gender===item.key?'on':''}}" data-key="{{item.key}}" bindtap="onGenderTap">{{item.label}}</view></view>
+    <view class="field-title">本次需求</view><view class="choice-row"><view wx:for="{{needs}}" wx:key="key" class="choice {{profile.need===item.key?'on':''}}" data-key="{{item.key}}" bindtap="onNeedTap">{{item.label}}</view></view>
+    <view class="field-title">默认可忍耐时间</view><view class="choice-row"><view wx:for="{{holds}}" wx:key="value" class="choice {{profile.hold===item.value?'on':''}}" data-value="{{item.value}}" bindtap="onHoldTap">{{item.label}}</view></view>
   </view>
-
-  <!-- 数据概况 -->
-  <view class="card">
-    <view class="card-title">数据概况</view>
-    <view class="stat-row">
-      <view class="stat-item">
-        <text class="stat-num">{{stationCount}}</text>
-        <text class="stat-label">地铁站</text>
-      </view>
-      <view class="stat-item">
-        <text class="stat-num">{{toiletCount}}</text>
-        <text class="stat-label">厕所</text>
-      </view>
-      <view class="stat-item">
-        <text class="stat-num">{{lineCount}}</text>
-        <text class="stat-label">线路</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 关于 -->
-  <view class="card">
-    <view class="card-title">关于</view>
-    <view class="info-row" bindtap="onCopyVersion">
-      <text>版本</text>
-      <text class="info-val">v{{version}}（点击复制）</text>
-    </view>
-    <view class="info-row">
-      <text>数据来源</text>
-      <text class="info-val">上海地铁官方公开信息</text>
-    </view>
-    <view class="info-row">
-      <text>坐标系</text>
-      <text class="info-val">GCJ-02（腾讯地图）</text>
-    </view>
-    <view class="info-row">
-      <text>补充坐标</text>
-      <text class="info-val">© OpenStreetMap contributors</text>
-    </view>
-    <view class="info-row">
-      <text>运行环境</text>
-      <text class="info-val">微信小程序 · 离线运行</text>
-    </view>
-  </view>
-
-  <!-- 提示 -->
-  <view class="card">
-    <view class="card-title">使用提示</view>
-    <view class="tip">· 定位到最近地铁站需授权位置权限</view>
-    <view class="tip">· 推荐策略综合考虑憋忍时间、换乘、闸内外</view>
-    <view class="tip">· 中途站只推荐闸内厕所，避免出站重进</view>
-    <view class="tip">· 地铁图 Tab 可浏览全网厕所分布</view>
-  </view>
-
-  <view class="footer">让每一次都能从容解决 💧</view>
+  <view class="profile-card"><view class="card-title">收藏站点</view><view wx:if="{{favoriteStations.length}}" class="station-list"><view wx:for="{{favoriteStations}}" wx:key="id" class="station-item"><view><text class="station-name">{{item.name}}</text><text class="station-lines">{{item.lineText}}</text></view><view class="remove" data-id="{{item.id}}" bindtap="onRemoveStation">已收藏</view></view></view><view wx:else class="empty">在首页选择站点时，点击收藏即可加入这里。</view></view>
+  <view class="profile-card"><view class="card-title">常用线路</view><view class="line-grid"><view wx:for="{{lineOptions}}" wx:key="key" class="line-choice {{item.on?'on':''}}" style="{{item.on ? ('background:'+item.color+';color:#fff') : ('color:'+item.color)}}" data-key="{{item.key}}" bindtap="onToggleLine">{{item.label}}</view></view></view>
+  <view class="profile-card feedback" bindtap="onFeedback"><view><view class="card-title">信息反馈</view><view class="feedback-sub">上报厕所位置、状态或功能建议</view></view><view class="feedback-arrow">›</view></view>
 </view>

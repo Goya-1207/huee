@@ -1,0 +1,16 @@
+<view class="feedback-page">
+  <view class="feedback-head">
+    <view><view class="feedback-title">提交反馈</view><view class="feedback-sub">帮助我们更新地铁厕所信息</view></view>
+    <view class="feedback-back" bindtap="onBack">✕</view>
+  </view>
+  <view class="feedback-card">
+    <text class="field-label">反馈类型</text>
+    <picker mode="selector" range="{{types}}" value="{{typeIndex}}" bindchange="onTypeChange"><view class="picker-value">{{types[typeIndex]}}　›</view></picker>
+    <text class="field-label">相关站点（可选）</text>
+    <input class="field-input" value="{{station}}" bindinput="onStationInput" placeholder="如：人民广场" />
+    <text class="field-label">具体说明</text>
+    <textarea class="field-textarea" value="{{content}}" bindinput="onContentInput" maxlength="500" placeholder="请说明厕所位置、状态或你的建议…" />
+  </view>
+  <button class="submit" bindtap="onSubmit">保存反馈</button>
+  <view class="hint">当前为离线版本，反馈暂保存于本机；接入服务端后可统一同步。</view>
+</view>

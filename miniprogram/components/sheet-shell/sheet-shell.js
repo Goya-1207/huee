@@ -5,6 +5,7 @@ Component({
     title: { type: String, value: '' },
     kicker: { type: String, value: '' },
     kickerIcon: { type: String, value: '' },
+    compact: { type: Boolean, value: false },
   },
   data: {
     kickerIconSrc: '',

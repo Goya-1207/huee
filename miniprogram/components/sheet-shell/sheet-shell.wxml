@@ -1,5 +1,5 @@
 <view class="sheet-wrap" bindtap="onClose">
-  <view class="sheet" catchtap="noop">
+  <view class="sheet {{compact ? 'sheet-compact' : ''}}" catchtap="noop">
     <view class="sheet-grab"></view>
     <view class="sheet-head">
       <view class="sheet-head-main">

@@ -26,15 +26,22 @@ function findNearestStation(lat, lng) {
     : null;
 }
 
+// 返回定位点周边候选站，供用户在相邻/换乘密集区域自行确认当前站。
+function findNearbyStations(lat, lng, maxDistance = 900, limit = 6) {
+  return geo.markers.map((m) => ({
+    stationId: m.stationId, name: m.name, distance: Math.round(haversine(lat, lng, m.latitude, m.longitude)), hub: m.hub,
+  })).filter((m) => m.distance <= maxDistance).sort((a, b) => a.distance - b.distance).slice(0, limit);
+}
+
 // 调用 wx.getLocation({type:'gcj02'}) -> 找最近车站 -> Promise<result>
 // maxDistance 用于避免用户离上海地铁极远时仍被错误地指向某个站点。
-function locateAndPick({ maxDistance = Infinity } = {}) {
+function locateAndPick({ maxDistance = Infinity, nearbyDistance = 900 } = {}) {
   return new Promise((resolve, reject) => {
     wx.getLocation({
       type: 'gcj02',
       success: (res) => {
         const nearest = findNearestStation(res.latitude, res.longitude);
-        if (nearest && nearest.distance <= maxDistance) resolve(nearest);
+        if (nearest && nearest.distance <= maxDistance) resolve(Object.assign(nearest, { nearby: findNearbyStations(res.latitude, res.longitude, nearbyDistance) }));
         else if (nearest) {
           const err = new Error('附近没有可用地铁站');
           err.code = 'OUT_OF_RANGE';
@@ -47,4 +54,4 @@ function locateAndPick({ maxDistance = Infinity } = {}) {
   });
 }
 
-module.exports = { haversine, findNearestStation, locateAndPick };
+module.exports = { haversine, findNearestStation, findNearbyStations, locateAndPick };

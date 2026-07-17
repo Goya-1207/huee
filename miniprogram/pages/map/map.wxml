@@ -4,10 +4,10 @@
   longitude="{{center.longitude}}"
   latitude="{{center.latitude}}"
   scale="{{scale}}"
-  markers="{{mapMarkers}}"
   polyline="{{mapPolylines}}"
-  bindmarkertap="onMarkerTap"
-  bindcallouttap="onMarkerTap"
+  enable-poi="{{true}}"
+  bindpoitap="onPoiTap"
+  bindregionchange="onRegionChange"
   show-location="{{false}}"
   enable-overlooking="{{false}}"
 >
@@ -20,16 +20,31 @@
         <cover-view class="mc-name">{{selectedSt.name}}</cover-view>
         <cover-view wx:if="{{selectedSt.hub}}" class="mc-hub">换乘</cover-view>
       </cover-view>
+      <cover-view class="mc-favorite {{selectedSt.favorite ? 'on' : ''}}" catchtap="onToggleFavorite">{{selectedSt.favorite ? '★ 已收藏' : '☆ 收藏'}}</cover-view>
       <cover-view class="mc-close" bindtap="closeCard">✕</cover-view>
     </cover-view>
     <cover-view class="mc-badges">
       <cover-view wx:for="{{selectedSt.lines}}" wx:key="n" class="mc-dot" style="background:{{item.color}}">{{item.label}}</cover-view>
     </cover-view>
     <cover-view wx:if="{{selectedSt.toilets.length === 0}}" class="mc-empty">暂无厕所数据</cover-view>
-    <cover-view wx:for="{{selectedSt.toilets}}" wx:key="id" class="mc-row">
-      <cover-view class="mc-pos" style="color:{{item.posColor}}">{{item.posLabel}}</cover-view>
-      <cover-view class="mc-area" style="color:{{item.areaColor}}">{{item.area}}</cover-view>
-      <cover-view class="mc-desc">{{item.desc}}</cover-view>
+    <cover-view class="mc-toilet-grid">
+      <cover-view wx:for="{{selectedSt.toilets}}" wx:key="id" class="mc-toilet-card {{item.closed ? 'closed' : ''}}">
+        <cover-view class="mc-toilet-head">
+          <cover-view class="mc-toilet-title">{{item.title}}</cover-view>
+          <cover-view class="mc-line" style="background:{{item.lineColor}}">{{item.lineLabel}}</cover-view>
+          <cover-view wx:if="{{item.closed}}" class="mc-closed">暂停使用</cover-view>
+        </cover-view>
+        <cover-view class="mc-meta">
+          <cover-view class="mc-meta-item" style="color:{{item.posColor}}">{{item.posLabel}}</cover-view>
+          <cover-view class="mc-meta-item" style="color:{{item.areaColor}}">{{item.area}}</cover-view>
+          <cover-view class="mc-meta-item mc-walk">{{item.walkLabel}}</cover-view>
+        </cover-view>
+        <cover-view class="mc-facilities">
+          <cover-view wx:for="{{item.facilities}}" wx:for-item="facility" wx:key="label" class="mc-facility {{facility.on ? 'on' : 'off'}}">{{facility.label}}{{facility.on ? '可用' : '无'}}</cover-view>
+        </cover-view>
+        <cover-view wx:if="{{item.near}}" class="mc-near">近 {{item.near}}</cover-view>
+        <cover-view class="mc-desc">{{item.desc}}</cover-view>
+      </cover-view>
     </cover-view>
   </cover-view>
 </map>

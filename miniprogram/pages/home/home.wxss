@@ -1,20 +1,32 @@
 /* pages/home/home.wxss */
 .app { position: relative; height: 100vh; overflow: hidden; }
 .scroll { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+.home-pad { padding-top: calc(env(safe-area-inset-top) + 28px); }
 
 .gap-12 { height: 12px; }
 .gap-18 { height: 18px; }
 .gap-20 { height: 20px; }
 .gap-22 { height: 22px; }
 
+/* 小程序不支持浏览器版的 background-clip:text；拆分字形实现稳定可见的艺术字。 */
+.brand-art { display: flex; align-items: flex-end; height: 58rpx; letter-spacing: 2rpx; }
+.brand-art-char {
+  display: inline-block; font-size: 54rpx; line-height: 58rpx; font-weight: 900;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  text-shadow: 0 6rpx 16rpx rgba(0, 111, 170, 0.25);
+}
+.brand-art-char.hu { color: #0085CA; }
+.brand-art-char.e1 { color: #006DAA; }
+.brand-art-char.e2 { color: #5F259F; }
+
 /* ── 路线卡 ── */
-.route-row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 13px 12px; border-radius: 16px; }
+.route-row { position: relative; width: 100%; display: flex; align-items: center; gap: 12px; padding: 13px 46px 13px 12px; border-radius: 16px; }
 .route-icon { width: 22px; height: 22px; flex-shrink: 0; }
 .route-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .route-label { font-size: 11.5px; font-weight: 600; color: var(--ink-3); letter-spacing: 0.3px; }
 .route-station { font-size: 18px; font-weight: 800; color: var(--ink-1); display: flex; align-items: center; gap: 8px; }
 .route-station.ph { font-size: 15.5px; font-weight: 600; color: var(--ink-4); }
-.route-chev { width: 18px; height: 18px; flex-shrink: 0; }
+.route-chev { position: absolute; right: 14px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); }
 .route-divider { position: relative; height: 1px; margin: 0 14px 0 52px; background: rgba(60,60,67,0.1); }
 .route-track { position: absolute; left: -29px; top: -16px; height: 32px; border-left: 2px dotted rgba(60,60,67,0.22); }
 .swap-btn {

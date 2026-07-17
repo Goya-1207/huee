@@ -189,12 +189,28 @@ function simplify(coords, tol) {
   return out;
 }
 
+// 个别源线段内部仍含有错误的远距离跳点（通常是抓取时拼入的另一条支线）。
+// 在绘制前切开，而不是把两个端点硬连成一条跨城直线。
+function splitAtGeometryGaps(coords, maxGap = 0.01) {
+  const groups = [];
+  let group = [];
+  for (const point of (coords || [])) {
+    const prev = group[group.length - 1];
+    if (prev && Math.hypot(point[0] - prev[0], point[1] - prev[1]) > maxGap) {
+      if (group.length >= 2) groups.push(group);
+      group = [point];
+    } else group.push(point);
+  }
+  if (group.length >= 2) groups.push(group);
+  return groups;
+}
+
 // ── 主流程 ──
 const lineRaw = JSON.parse(fs.readFileSync(path.join(ROOT, 'geo/shanghai_subway_line.geojson'), 'utf8'));
 const stationRaw = JSON.parse(fs.readFileSync(path.join(ROOT, 'geo/shanghai_subway_station.geojson'), 'utf8'));
 const stationIdx = buildStationNameIndex();
 
-// 线路去重（同 lineKey 保留坐标点最多的）
+// 同一线路在源数据中可能存在多个版本，保留坐标点最多的完整版本。
 const lineBest = new Map();
 const lineOrder = [];
 for (const feature of lineRaw.features) {
@@ -203,10 +219,10 @@ for (const feature of lineRaw.features) {
   const key = normalizedLineDedupeKey(normalized, normalized.properties.lineKey);
   const pts = countLineCoords(normalized.geometry);
   const prev = lineBest.get(key);
-  if (!prev) { lineBest.set(key, { feature: normalized, pts: pts }); lineOrder.push(key); }
-  else if (pts > prev.pts) lineBest.set(key, { feature: normalized, pts: pts });
+  if (!prev) { lineBest.set(key, { feature: normalized, pts }); lineOrder.push(key); }
+  else if (pts > prev.pts) lineBest.set(key, { feature: normalized, pts });
 }
-const lineFeatures = lineOrder.map((k) => lineBest.get(k).feature);
+const lineFeatures = lineOrder.map((key) => lineBest.get(key).feature);
 
 // 站点归一化 + 匹配 app STATIONS
 const stationFeatures = stationRaw.features.map((f) => {
@@ -227,20 +243,6 @@ const stationFeatures = stationRaw.features.map((f) => {
   };
 });
 addSupplementalLineFeatures(lineFeatures, stationFeatures);
-
-// 转 polylines（每条线合并 MultiLineString 各段 + 抽稀到 ~20m）
-const polylines = [];
-lineFeatures.forEach((f, idx) => {
-  const lk = f.properties.lineKey;
-  const color = f.properties.color || LINE_COLORS[lk] || '#888';
-  const geom = f.geometry;
-  let allCoords = [];
-  if (geom.type === 'LineString') allCoords = geom.coordinates.slice();
-  else if (geom.type === 'MultiLineString') for (const seg of geom.coordinates) allCoords = allCoords.concat(seg);
-  const simplified = simplify(allCoords, 0.0002);
-  const points = simplified.map((c) => ({ longitude: c[0], latitude: c[1] }));
-  if (points.length >= 2) polylines.push({ id: idx, lineKey: lk, color: color, width: 5, points: points });
-});
 
 // 转 markers（只保留匹配到 app 数据的站，跳过未命名/未匹配）
 const markers = [];
@@ -269,6 +271,37 @@ for (const [stationId, coord] of Object.entries(SUPPLEMENTAL_STATION_WGS84)) {
   if (!st) continue;
   const [longitude, latitude] = wgs84ToGcj02(coord[0], coord[1]);
   markers.push({ id: stationFeatures.length + markers.length, stationId, name: st.name, latitude, longitude, hub: !!st.hub, toiletCount: st.toilets.length });
+}
+
+// 保留真实 GeoJSON 的每段几何。MultiLineString 的段之间没有顺序保证，绝不能扁平拼接；
+// 在 <map> 中把每一段作为同色 polyline 绘制，即可获得真实弯曲走向且不会跨段误连。
+const polylines = [];
+for (const feature of lineFeatures) {
+  const geom = feature.geometry || {};
+  const segments = geom.type === 'LineString' ? [geom.coordinates] : (geom.type === 'MultiLineString' ? geom.coordinates : []);
+  const lineKey = feature.properties.lineKey;
+  for (const segment of segments) {
+    for (const continuousSegment of splitAtGeometryGaps(segment)) {
+      const simplified = simplify(continuousSegment, 0.0002);
+      if (simplified.length < 2) continue;
+      polylines.push({
+        id: polylines.length,
+        lineKey,
+        color: feature.properties.color || LINE_COLORS[lineKey] || '#888',
+        width: 5,
+        points: simplified.map((c) => ({ longitude: c[0], latitude: c[1] })),
+      });
+    }
+  }
+}
+// 部分源文件的浦江线仅有无效/不完整几何；以已校验站点顺序兜底，保证该线可见。
+if (!polylines.some((p) => p.lineKey === 'pj')) {
+  const markerByStationId = new Map(markers.map((m) => [m.stationId, m]));
+  const points = (LINES.pj || []).map((stationId) => markerByStationId.get(stationId)).filter(Boolean)
+    .map((m) => ({ longitude: m.longitude, latitude: m.latitude }));
+  if (points.length >= 2) {
+    polylines.push({ id: polylines.length, lineKey: 'pj', color: LINE_COLORS.pj || '#888', width: 5, points });
+  }
 }
 
 console.log('polylines:', polylines.length, '| markers:', markers.length, '| 跳过未匹配:', unmatched);

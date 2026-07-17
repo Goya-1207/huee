@@ -5,6 +5,7 @@ const { byId } = require('../../utils/data.js');
 const { decideStrategy } = require('../../utils/strategy.js');
 const { icon } = require('../../utils/icon.js');
 const { locateAndPick } = require('../../utils/location.js');
+const { getProfile } = require('../../utils/profile.js');
 
 const GENDERS = [
   { key: 'm', label: '男厕', icon: 'male' },
@@ -62,25 +63,28 @@ function waitState(m) { return m <= 2 ? '马上就要上' : m < 15 ? '有点急'
 
 Page({
   data: {
-    cur: '人民广场', dest: '', gender: 'm', need: 'pee', hold: 8, locating: false,
+    cur: '人民广场', dest: '', gender: 'm', need: 'pee', hold: 8, locating: false, locationError: false, locationAttempted: false, appliedProfileAt: 0,
     genderOptions: GENDERS,
     needOptions: NEEDS,
     curStation: null, destStation: null,
     sliderPos: 0, sliderColor: '#2EA56A', waitStateText: '', waitHoldText: '',
     snaps: [], autoplan: null,
     curIconSrc: '', destIconSrc: '', swapIconSrc: '', chevRIconSrc: '', arrowIconSrc: '',
-    activeSheet: '', pickKind: 'cur', detailRank: null, stObj: null,
+    activeSheet: '', pickKind: 'cur', nearbyStationIds: [], detailRank: null, stObj: null,
   },
 
   onLoad() {
     // 恢复上次状态
     const saved = wx.getStorageSync('homeState') || {};
+    const profile = getProfile();
     this.setData({
       cur: saved.cur || '人民广场',
       dest: saved.dest || '',
-      gender: saved.gender || 'm',
-      need: saved.need || 'pee',
-      hold: saved.hold || 8,
+      gender: profile.gender,
+      need: profile.need,
+      hold: profile.hold,
+      locationAttempted: !!saved.locationAttempted,
+      appliedProfileAt: profile.updatedAt,
       curIconSrc: icon('pin', { color: '#0085CA', size: 20 }),
       destIconSrc: icon('flag', { color: '#5b6470', size: 20 }),
       swapIconSrc: icon('swap', { color: '#0085CA', size: 18 }),
@@ -88,6 +92,22 @@ Page({
       arrowIconSrc: icon('arrow', { color: '#ffffff', size: 22 }),
     });
     this.setState({});
+    // 首次进入时主动定位一次；用户拒绝后不在每次重开时重复弹出授权请求。
+    if (!saved.locationAttempted) {
+      wx.nextTick(() => {
+        this.setState({ locationAttempted: true });
+        this.onLocate();
+      });
+    }
+  },
+
+  onShow() {
+    const tabBar = this.getTabBar && this.getTabBar();
+    if (tabBar) tabBar.setData({ selected: 0 });
+    const profile = getProfile();
+    if (profile.updatedAt > this.data.appliedProfileAt) {
+      this.setState({ gender: profile.gender, need: profile.need, hold: profile.hold, appliedProfileAt: profile.updatedAt });
+    }
   },
 
   onReady() {
@@ -126,7 +146,10 @@ Page({
       stObj: { cur: cur, dest: dest, gender: gender, need: next.need, hold: hold },
     }));
     // 持久化核心状态
-    wx.setStorageSync('homeState', { cur: cur, dest: dest, gender: gender, need: next.need, hold: hold });
+    wx.setStorageSync('homeState', {
+      cur: cur, dest: dest, gender: gender, need: next.need, hold: hold,
+      locationAttempted: !!next.locationAttempted, appliedProfileAt: next.appliedProfileAt || 0,
+    });
   },
 
   onGenderChange(e) { this.setState({ gender: e.detail.key }); },
@@ -139,19 +162,25 @@ Page({
   },
 
   onLocate() {
-    // 避免连续点击时发起多次定位请求；较晚返回的旧请求会覆盖较新的结果。
+    // 首页定位入口与选择器复用同一真实扫描流程，避免两处逻辑不同步。
+    this.onPickCur();
+  },
+
+  onPickerLocate() {
     if (this.data.locating) return;
-    this.setState({ locating: true });
+    this.setData({ locating: true, locationError: false, nearbyStationIds: [] });
     locateAndPick({ maxDistance: 5000 }).then((r) => {
-      this.setState({ locating: false, cur: r.stationId });
-      wx.showToast({ title: r.name + '·' + r.distance + 'm', icon: 'none' });
+      const nearby = (r.nearby || []).slice();
+      if (!nearby.some((item) => item.stationId === r.stationId)) nearby.unshift(r);
+      const nearbyIds = nearby.map((item) => item.stationId);
+      this.setData({ locating: false, nearbyStationIds: nearbyIds }, () => {
+        const picker = this.selectComponent('#station-picker');
+        if (picker) picker.showNearbyStations(nearby);
+      });
     }).catch((err) => {
-      this.setState({ locating: false });
-      if (err && err.code === 'OUT_OF_RANGE') {
-        wx.showToast({ title: '附近 5 公里内没有地铁站，请手动选择', icon: 'none' });
-        return;
-      }
-      this._offerLocationSettings();
+      this.setData({ locating: false, locationError: true });
+      if (err && err.code === 'OUT_OF_RANGE') wx.showToast({ title: '附近 5 公里内没有地铁站', icon: 'none' });
+      else this._offerLocationSettings();
     });
   },
 
@@ -173,18 +202,22 @@ Page({
     });
   },
 
-  onPickCur() { this.setData({ activeSheet: 'picker', pickKind: 'cur' }); },
-  onPickDest() { this.setData({ activeSheet: 'picker', pickKind: 'dest' }); },
+  onPickCur() {
+    this.setData({ activeSheet: 'picker', pickKind: 'cur', nearbyStationIds: [], locationError: false });
+    // 等选择器完成挂载后开始真实定位，保证扫描动效和微信授权请求同步出现。
+    wx.nextTick(() => this.onPickerLocate());
+  },
+  onPickDest() { this.setData({ activeSheet: 'picker', pickKind: 'dest', nearbyStationIds: [], locationError: false }); },
   onSearch() { this.setData({ activeSheet: 'result' }); },
 
   onPickerSelect(e) {
     const id = e.detail.id;
     const patch = this.data.pickKind === 'cur' ? { cur: id } : { dest: id };
     this.setState(patch);
-    this.setData({ activeSheet: '' });
+    this.setData({ activeSheet: '', nearbyStationIds: [] });
   },
   onOpenToilet(e) { this.setData({ detailRank: e.detail.rank, activeSheet: 'detail' }); },
-  closeSheet() { this.setData({ activeSheet: '', detailRank: null }); },
+  closeSheet() { this.setData({ activeSheet: '', nearbyStationIds: [], detailRank: null }); },
   goMap() { wx.switchTab({ url: '/pages/map/map' }); },
 
   // ── 滑块拖动 ──

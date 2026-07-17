@@ -1,0 +1,14 @@
+.feedback-page { min-height: 100vh; box-sizing: border-box; padding: calc(env(safe-area-inset-top) + 44rpx) 32rpx 64rpx; background: #eef4f6; }
+.feedback-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 36rpx; }
+.feedback-title { color: #1f2937; font-size: 44rpx; font-weight: 800; }
+.feedback-sub { margin-top: 6rpx; color: #758092; font-size: 24rpx; }
+.feedback-back { width: 56rpx; height: 56rpx; line-height: 54rpx; text-align: center; color: #657184; background: rgba(255,255,255,.78); border-radius: 50%; }
+.feedback-card { padding: 28rpx; border-radius: 28rpx; background: rgba(255,255,255,.85); box-shadow: 0 12rpx 36rpx rgba(28,38,76,.08); }
+.field-label { display: block; margin: 22rpx 0 12rpx; color: #475569; font-size: 24rpx; font-weight: 700; }
+.field-label:first-child { margin-top: 0; }
+.picker-value,.field-input,.field-textarea { box-sizing: border-box; width: 100%; border-radius: 16rpx; background: #f6f8fa; color: #293548; font-size: 28rpx; }
+.picker-value,.field-input { height: 82rpx; line-height: 82rpx; padding: 0 22rpx; }
+.field-textarea { height: 230rpx; padding: 18rpx 22rpx; line-height: 1.5; }
+.submit { margin-top: 32rpx; border-radius: 20rpx; background: linear-gradient(135deg,#0085CA,#006DAA); color: #fff; font-size: 32rpx; font-weight: 800; }
+.submit::after { border: none; }
+.hint { margin: 20rpx 16rpx; color: #8b95a4; font-size: 22rpx; line-height: 1.55; text-align: center; }

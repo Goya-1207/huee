@@ -1,4 +1,25 @@
-<sheet-shell title="{{title}}" kicker="{{kicker}}" kicker-icon="{{kickerIcon}}" bind:close="onClose">
+<sheet-shell compact title="{{title}}" kicker="{{kicker}}" kicker-icon="{{kickerIcon}}" bind:close="onClose">
+  <view wx:if="{{kind==='cur'}}" class="locate-card {{locationState==='scanning'?'scanning':''}} {{locationState==='ready'?'results':''}}" bindtap="onLocate">
+    <block wx:if="{{locationState==='ready'}}">
+      <view class="locate-results-head"><text>附近站点</text><text class="locate-retry" catchtap="onLocate">重新定位</text></view>
+      <scroll-view class="locate-results-list" scroll-y style="height:{{nearbyListHeight}}">
+        <view wx:for="{{nearbyList}}" wx:key="id" class="locate-result-row" data-id="{{item.id}}" catchtap="onSelect">
+          <view class="locate-pulse"><view class="locate-dot"></view></view>
+          <view class="locate-copy"><text class="locate-label">{{item.name}}</text><text wx:if="{{item.distance}}" class="locate-sub">约 {{item.distance}} 米</text></view>
+          <line-badge lines="{{item.lines}}" size="18" />
+        </view>
+      </scroll-view>
+    </block>
+    <block wx:else>
+      <view class="locate-pulse"><view class="locate-dot"></view></view>
+      <view class="locate-copy">
+        <text class="locate-label">{{locationState==='scanning' ? '正在检测附近车站…' : (locationState==='error' ? '定位失败，请点击重试' : '检测你所在的位置')}}</text>
+        <text class="locate-sub">使用定位，查找相近地铁站</text>
+      </view>
+      <view class="locate-action {{locationState==='scanning'?'disabled':''}}">{{locationState==='scanning' ? '扫描中' : '使用'}} <text wx:if="{{locationState!=='scanning'}}">→</text></view>
+    </block>
+  </view>
+
   <view class="picker-tabs">
     <view class="pt {{tab==='line'?'on':''}}" bindtap="onTabLine">按线路</view>
     <view class="pt {{tab==='search'?'on':''}}" bindtap="onTabSearch">搜索站名</view>
@@ -9,14 +30,15 @@
       <image class="ps-ic" src="{{searchIcon}}" />
       <input class="ps-input" value="{{q}}" bindinput="onQInput" placeholder="搜索站名…" />
     </view>
-    <view wx:if="{{!q}}" class="sort-row">
-      <text class="sort-head">{{sortMode==='hot' ? '热门车站' : (hasRef ? ('离'+refName+'最近') : '热门车站')}}</text>
+    <scroll-view class="sheet-body picker-list" scroll-y>
+      <view wx:if="{{!q}}" class="sort-row">
+      <text class="sort-head">{{sortMode==='hot' ? '热门车站' : (sortMode==='near' ? (hasRef ? ('离'+refName+'最近') : '热门车站') : '收藏车站')}}</text>
       <view class="sort-toggle">
         <view class="st-btn {{sortMode==='hot'?'on':''}}" bindtap="onSortHot">热门</view>
-        <view class="st-btn {{sortMode==='near'?'on':''}} {{!hasRef?'disabled':''}}" bindtap="onSortNear">最近</view>
+        <view class="st-btn {{sortMode==='near'?'on':''}} {{!hasRef?'disabled':''}}" bindtap="onSortNear">附近</view>
+        <view class="st-btn {{sortMode==='favorite'?'on':''}}" bindtap="onSortFavorite">收藏</view>
       </view>
-    </view>
-    <scroll-view class="sheet-body picker-list" scroll-y>
+      </view>
       <view wx:for="{{list}}" wx:key="id" class="picker-row {{item.id===current?'on':''}}" data-id="{{item.id}}" bindtap="onSelect">
         <view class="pr-name">
           <image wx:if="{{item.hot}}" class="hot-dot" src="{{sparkleIcon}}" />
@@ -26,6 +48,7 @@
         <view class="pr-right">
           <text wx:if="{{item.dist}}" class="pr-dist">{{item.dist}} 分</text>
           <line-badge lines="{{item.lines}}" size="18" />
+          <view class="fav-btn {{item.favorite?'on':''}}" data-id="{{item.id}}" catchtap="onToggleFavorite">{{item.favorite?'★':'☆'}}</view>
         </view>
       </view>
       <view wx:if="{{list.length===0}}" class="empty-hint">没有找到「{{q}}」</view>
@@ -58,7 +81,7 @@
           <text>{{item.name}}</text>
           <text wx:if="{{item.hub}}" class="hub-tag">换乘</text>
         </view>
-        <line-badge lines="{{item.otherLines}}" size="16" />
+        <view class="pr-right"><line-badge lines="{{item.otherLines}}" size="16" /><view class="fav-btn {{item.favorite?'on':''}}" data-id="{{item.id}}" catchtap="onToggleFavorite">{{item.favorite?'★':'☆'}}</view></view>
       </view>
     </scroll-view>
   </block>
