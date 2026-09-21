@@ -47,13 +47,19 @@ Component({
     _buildCard(rank, primary) {
       const t = rank.toilet, st = rank.station;
       const pos = POS_META[t.place] || POS_META.platform;
+      const plan = rank.routePlan;
       return {
         primary: primary,
-        key: t.id,
+        key: (plan ? plan.id : 'none') + '|' + t.id,
         name: st.name,
         lines: st.lines,
         loc: toiletLocBrief(t),
         totalMin: Math.round(rank.totalMin),
+        routeTitle: plan ? plan.title : '',
+        routeLineText: plan ? plan.lineText : '',
+        routeTransferText: plan ? plan.transferText : '',
+        routeMetrics: plan ? `${plan.transferCount} 次换乘 · 全程约 ${plan.minutes} 分钟` : '',
+        routeSeatText: plan ? plan.seatText : '',
         chips: this._buildChips(rank, t, pos),
       };
     },

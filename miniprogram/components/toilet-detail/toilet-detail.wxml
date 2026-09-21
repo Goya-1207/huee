@@ -13,37 +13,45 @@
       </view>
     </view>
 
-    <view class="td-section">
-      <view class="td-label">位置</view>
-      <view class="td-row">
-        <image class="td-ic" src="{{posIcon}}" />
-        <view class="td-row-text">
-          <view class="td-row-title">{{posLabel}}</view>
-          <view class="td-row-sub">{{desc}}</view>
-        </view>
-      </view>
-      <view class="td-row">
-        <image class="td-ic" src="{{nearIcon}}" />
-        <view class="td-row-text">
-          <view class="td-row-title">{{areaLine}}</view>
-          <view class="td-row-sub">步行约 {{walk}} 分钟到达</view>
-        </view>
-      </view>
+    <view wx:if="{{routePlan}}" class="td-route">
+      <view class="td-route-head"><text>{{routePlan.title}}</text><text>{{routePlan.transferCount}} 次换乘 · 约 {{routePlan.minutes}} 分钟</text></view>
+      <view class="td-route-lines">{{routePlan.lineText}}</view>
+      <view class="td-route-transfer">{{routePlan.transferText}}</view>
+      <view wx:if="{{routePlan.seatText}}" class="td-route-seat">{{routePlan.seatText}}</view>
     </view>
 
     <view class="td-section">
-      <view class="td-label">设施</view>
-      <view class="td-facility-grid">
-        <view wx:for="{{facilities}}" wx:key="key" class="td-facility {{item.on ? '' : 'off'}}">
-          <image class="td-facility-ic" src="{{item.icon}}" />
-          <text class="td-facility-l">{{item.label}}</text>
-          <text class="td-facility-s">{{item.sub}}</text>
+      <view class="td-label">本站厕所（{{toiletCount}}处）</view>
+      <view wx:for="{{toilets}}" wx:key="id" class="td-toilet {{item.selected ? 'selected' : ''}} {{item.closed ? 'closed' : ''}}">
+        <view class="td-toilet-head">
+          <view class="td-toilet-title">{{item.title}}</view>
+          <line-badge lines="{{item.lines}}" size="16" />
+          <view wx:if="{{item.selected}}" class="td-recommended">当前推荐</view>
+          <view wx:if="{{item.closed}}" class="td-closed">暂停使用</view>
+        </view>
+        <view class="td-line-text">{{item.lineText}}</view>
+        <view class="td-row">
+          <image class="td-ic" src="{{item.posIcon}}" />
+          <view class="td-row-text">
+            <view class="td-row-title">{{item.posLabel}} · {{item.areaLine}}</view>
+            <view class="td-row-sub">{{item.desc}}</view>
+          </view>
+        </view>
+        <view class="td-row td-row-compact">
+          <image class="td-ic" src="{{item.nearIcon}}" />
+          <view class="td-row-text">
+            <view class="td-row-title">预计步行 {{item.walk}} 分钟</view>
+            <view class="td-row-sub">请结合站内导向标识前往</view>
+          </view>
+        </view>
+        <view class="td-facility-grid">
+          <view wx:for="{{item.facilities}}" wx:for-item="facility" wx:key="key" class="td-facility {{facility.on ? '' : 'off'}}">
+            <image class="td-facility-ic" src="{{facility.icon}}" />
+            <text class="td-facility-l">{{facility.label}}</text>
+            <text class="td-facility-s">{{facility.sub}}</text>
+          </view>
         </view>
       </view>
-    </view>
-
-    <view wx:if="{{closed}}" class="td-section">
-      <view class="td-note">⚠️ 该厕所可能正在改造或暂停使用，建议就近选择其他厕所。</view>
     </view>
 
     <view class="td-source">数据来源：上海地铁公开厕所分布信息 · 仅供参考</view>

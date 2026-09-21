@@ -64,7 +64,7 @@ Page({
       return {
         id: t.id,
         title: '厕所 ' + (st.toilets.indexOf(t) + 1),
-        lineLabel: lineLabel(t.line), lineColor: LINE_COLORS[t.line] || '#888',
+        lineLabel: (t.lines || [t.line]).map(lineLabel).join('/'), lineColor: LINE_COLORS[t.line] || '#888',
         posLabel: pos.label, posColor: pos.color,
         area: t.area, areaColor: t.area === '付费区' ? '#2EA56A' : '#ED8B00',
         desc: t.desc,

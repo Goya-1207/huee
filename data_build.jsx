@@ -46,10 +46,10 @@
       const closed = /改造|关闭|暂停|停用/.test(desc);
 
       st.toilets.push({
-        id: `${name}#${lineKey}#${i}`,
-        station: name,
-        place: posType,
-        line, area, near, desc,
+      id: `${name}#${lineKey}#${i}`,
+      station: name,
+      place: posType,
+      line, lines: [line], area, near, desc,
         m: true, f: true,
         acc: acc === 1,
         walk, closed,
@@ -61,13 +61,17 @@
 
   // 站内去重（同一站描述完全相同的厕所合并）
   Object.values(STMAP).forEach((st) => {
-    const seen = new Set();
-    st.toilets = st.toilets.filter((t) => {
-      const k = t.place + '|' + t.desc;
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    });
+  const seen = new Map();
+  st.toilets = st.toilets.filter((t) => {
+    const k = t.place + '|' + t.desc;
+    const previous = seen.get(k);
+    if (previous) {
+      for (const line of t.lines) if (!previous.lines.includes(line)) previous.lines.push(line);
+      return false;
+    }
+    seen.set(k, t);
+    return true;
+  });
     st.lines.sort((a, b) => String(a).localeCompare(String(b), 'en', { numeric: true }));
     st.hub = st.lines.length > 1;
   });

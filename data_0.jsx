@@ -1,4 +1,6 @@
 // ─── 沪屙屙 数据核心：线路配色 + 数据登记器 ───
+// 厕所数据基线：上海地铁运营服务官网车站接口，核验日期 2026-09-20。
+// 2024 年后新增/迁移点位同时参考上海市政府、市交通委及申通地铁公告。
 // 各 data_N.jsx 调用 window.__metro.addLine(lineKey, rows) 登记原始爬取数据，
 // 最后由 data_build.jsx 统一构建成 App 使用的 STATIONS / LINES / byId 等。
 

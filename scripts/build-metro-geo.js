@@ -105,9 +105,9 @@ const SUPPLEMENTAL_LINE_COORDS = {
 
 // 坐标源未收录的站点：从 OpenStreetMap 站点要素核对后补充。
 // OSM 坐标为 WGS-84，写入小程序前统一转换到腾讯地图的 GCJ-02。
-// 徐泾东、浦东国际机场以公开站点坐标交叉核验；其余为 OSM 的 station/stop 要素中心。
+// 浦东国际机场以公开站点坐标交叉核验；其余为 OSM 的 station/stop 要素中心。
 const SUPPLEMENTAL_STATION_WGS84 = {
-  '黄陂南路': [121.4679564, 31.2256562], '徐泾东': [121.2905, 31.1877],
+  '黄陂南路': [121.4679564, 31.2256562],
   '浦东国际机场': [121.8010, 31.1539], '罗南新村': [121.3527972, 31.3905792],
   '美兰湖': [121.3452915, 31.4036756], '金吉路': [121.6247128, 31.2666619],
   '光明路': [121.1125552, 31.2980927], '花桥': [121.0998583, 31.3012385],
@@ -117,6 +117,16 @@ const SUPPLEMENTAL_STATION_WGS84 = {
   '航头': [121.5920502, 31.0393345], '三鲁公路': [121.5230413, 31.0582930],
   '闵瑞路': [121.5260673, 31.0502003], '浦航路': [121.5263231, 31.0431896],
   '东城一路': [121.5278033, 31.0326638], '汇臻路': [121.5203001, 31.0274603],
+};
+
+// 上海地铁实时服务接口使用 BD-09 坐标；这些新站尚未进入仓库内的 GeoJSON。
+// 生成时转为腾讯地图所需的 GCJ-02，避免把百度坐标直接当经纬度造成数百米偏移。
+const SUPPLEMENTAL_STATION_BD09 = {
+  '蟠祥路·国家会计学院': [121.292642, 31.187302],
+  '西岑': [120.968535, 31.076051],
+  '康文路': [121.426125, 31.341440], '呼兰路': [121.443323, 31.346066],
+  '爱辉路': [121.455552, 31.350349], '长江西路': [121.481722, 31.351803],
+  '通南路': [121.486081, 31.343562],
 };
 function outOfChina(lng, lat) { return lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271; }
 function wgs84ToGcj02(lng, lat) {
@@ -129,6 +139,12 @@ function wgs84ToGcj02(lng, lat) {
   dLat = dLat * 180 / ((a * (1 - ee)) / (magic * sqrtMagic) * Math.PI);
   dLng = dLng * 180 / (a / sqrtMagic * Math.cos(radLat) * Math.PI);
   return [lng + dLng, lat + dLat];
+}
+function bd09ToGcj02(lng, lat) {
+  const x = lng - 0.0065, y = lat - 0.006;
+  const z = Math.sqrt(x * x + y * y) - 0.00002 * Math.sin(y * Math.PI * 3000 / 180);
+  const theta = Math.atan2(y, x) - 0.000003 * Math.cos(x * Math.PI * 3000 / 180);
+  return [z * Math.cos(theta), z * Math.sin(theta)];
 }
 function stationCoordIndex(stationFeatures) {
   const idx = {};
@@ -270,6 +286,13 @@ for (const [stationId, coord] of Object.entries(SUPPLEMENTAL_STATION_WGS84)) {
   const st = byId(stationId);
   if (!st) continue;
   const [longitude, latitude] = wgs84ToGcj02(coord[0], coord[1]);
+  markers.push({ id: stationFeatures.length + markers.length, stationId, name: st.name, latitude, longitude, hub: !!st.hub, toiletCount: st.toilets.length });
+}
+for (const [stationId, coord] of Object.entries(SUPPLEMENTAL_STATION_BD09)) {
+  if (existingStationIds.has(stationId)) continue;
+  const st = byId(stationId);
+  if (!st) continue;
+  const [longitude, latitude] = bd09ToGcj02(coord[0], coord[1]);
   markers.push({ id: stationFeatures.length + markers.length, stationId, name: st.name, latitude, longitude, hub: !!st.hub, toiletCount: st.toilets.length });
 }
 

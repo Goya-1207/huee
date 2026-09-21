@@ -1,12 +1,15 @@
 .sheet-wrap {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000;
   display: flex; flex-direction: column; justify-content: flex-end;
-  background: rgba(18,20,38,0.3);
-  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
   animation: fade 0.2s ease;
+}
+.sheet-mask {
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: rgba(18,20,38,0.3);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
 }
 @keyframes fade { from { opacity: 0; } }
 .sheet {
+  position: relative; z-index: 1;
   background: rgba(252,253,255,0.82);
   -webkit-backdrop-filter: blur(34px) saturate(180%); backdrop-filter: blur(34px) saturate(180%);
   border-radius: 30px 30px 0 0; padding: 8px 16px calc(env(safe-area-inset-bottom) + 30px);

@@ -18,6 +18,7 @@ Component({
   },
   methods: {
     noop() {},
+    blockTouch() {},
     onClose() { this.triggerEvent('close'); },
   },
 });

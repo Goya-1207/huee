@@ -36,8 +36,19 @@ function SheetShell({ children, onClose, title, kicker, kickerIcon }) {
 function ToiletCard({ rank, gender, primary, onOpen }) {
   const { toilet: t, station: st, totalMin, travelMin, inTime, reasonTags } = rank;
   const pos = POS_META[t.place];
+  const plan = rank.routePlan;
   return (
     <button className={'toilet-card' + (primary ? ' primary' : '')} onClick={onOpen}>
+      {plan && (
+        <div style={{ textAlign: 'left', margin: '-3px 0 12px', padding: '10px 11px', borderRadius: 13, background: 'rgba(0,133,202,0.07)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: 'var(--ink-3)', fontSize: 10.5, fontWeight: 700 }}>
+            <span>{plan.title}</span><span>{plan.transferCount} 次换乘 · 全程约 {plan.minutes} 分钟</span>
+          </div>
+          <div style={{ marginTop: 5, color: 'var(--brand)', fontSize: 13, fontWeight: 800 }}>{plan.lineText}</div>
+          <div style={{ marginTop: 3, color: 'var(--ink-2)', fontSize: 11, lineHeight: 1.45 }}>{plan.transferText}</div>
+          {plan.seatText && <div style={{ marginTop: 5, color: '#8A6500', fontSize: 10.5, fontWeight: 700 }}>{plan.seatText}</div>}
+        </div>
+      )}
       <div className="tc-top">
         <div style={{ textAlign: 'left', flex: 1, minWidth: 0 }}>
           <div className="tc-name">{st.name}<LineBadges lines={st.lines} size={16} /></div>
@@ -101,7 +112,7 @@ function ResultSheet({ st, onClose, onOpenToilet }) {
           <div className="empty-hint">附近没找到匹配的厕所，试试放宽需求或时间</div>
         )}
         {alts.length > 0 && <div className="alt-label">其他选择</div>}
-        {alts.map((r) => <ToiletCard key={r.toilet.id} rank={r} gender={st.gender} onOpen={() => onOpenToilet(r)} />)}
+        {alts.map((r) => <ToiletCard key={`${r.routePlan ? r.routePlan.id : 'none'}-${r.toilet.id}`} rank={r} gender={st.gender} onOpen={() => onOpenToilet(r)} />)}
         <div style={{ height: 8 }} />
       </div>
     </SheetShell>
@@ -140,6 +151,17 @@ function ToiletDetailSheet({ rank, onClose }) {
             {travelMin > 0 && <span className="td-walk-sub">（含坐车 {Math.round(travelMin)} 分）</span>}
           </div>
         </div>
+
+        {rank.routePlan && (
+          <div style={{ margin: '0 4px 14px', padding: '11px 12px', borderRadius: 14, background: 'rgba(0,133,202,0.07)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: 'var(--ink-3)', fontSize: 10.5, fontWeight: 700 }}>
+              <span>{rank.routePlan.title}</span><span>{rank.routePlan.transferCount} 次换乘 · 约 {rank.routePlan.minutes} 分钟</span>
+            </div>
+            <div style={{ marginTop: 5, color: 'var(--brand)', fontSize: 13, fontWeight: 800 }}>{rank.routePlan.lineText}</div>
+            <div style={{ marginTop: 3, color: 'var(--ink-2)', fontSize: 11 }}>{rank.routePlan.transferText}</div>
+            {rank.routePlan.seatText && <div style={{ marginTop: 5, color: '#8A6500', fontSize: 10.5, fontWeight: 700 }}>{rank.routePlan.seatText}</div>}
+          </div>
+        )}
 
         <div className="td-section">
           <div className="td-label">位置</div>

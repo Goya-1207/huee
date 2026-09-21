@@ -4,6 +4,12 @@
 
     <block wx:if="{{primary}}">
       <view class="toilet-card primary" catchtap="onOpenPrimary">
+        <view wx:if="{{primary.routeLineText}}" class="tc-route">
+          <view class="tc-route-head"><text>{{primary.routeTitle}}</text><text>{{primary.routeMetrics}}</text></view>
+          <view class="tc-route-lines">{{primary.routeLineText}}</view>
+          <view class="tc-route-transfer">{{primary.routeTransferText}}</view>
+          <view wx:if="{{primary.routeSeatText}}" class="tc-route-seat">{{primary.routeSeatText}}</view>
+        </view>
         <view class="tc-top">
           <view class="tc-top-left">
             <view class="tc-name">{{primary.name}}<line-badge lines="{{primary.lines}}" size="16" /></view>
@@ -24,6 +30,12 @@
 
       <view wx:if="{{alts.length}}" class="alt-label">其他选择</view>
       <view wx:for="{{alts}}" wx:key="key" class="toilet-card" data-idx="{{index}}" catchtap="onOpenAlt">
+        <view wx:if="{{item.routeLineText}}" class="tc-route">
+          <view class="tc-route-head"><text>{{item.routeTitle}}</text><text>{{item.routeMetrics}}</text></view>
+          <view class="tc-route-lines">{{item.routeLineText}}</view>
+          <view class="tc-route-transfer">{{item.routeTransferText}}</view>
+          <view wx:if="{{item.routeSeatText}}" class="tc-route-seat">{{item.routeSeatText}}</view>
+        </view>
         <view class="tc-top">
           <view class="tc-top-left">
             <view class="tc-name">{{item.name}}<line-badge lines="{{item.lines}}" size="16" /></view>

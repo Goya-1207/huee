@@ -8,7 +8,7 @@
     <view class="orb o5"></view>
   </view>
 
-  <scroll-view class="scroll" scroll-y="true">
+  <scroll-view class="scroll" scroll-y="{{!activeSheet}}" enhanced bounces="{{false}}">
     <view class="screen-pad home-pad">
 
       <view class="brand">
