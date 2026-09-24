@@ -46,7 +46,7 @@
           <view class="mc-facilities">
             <view wx:for="{{item.facilities}}" wx:for-item="facility" wx:key="label" class="mc-facility {{facility.on ? 'on' : 'off'}}">{{facility.label}}{{facility.on ? '可用' : '无'}}</view>
           </view>
-          <view wx:if="{{item.near}}" class="mc-near">近 {{item.near}}</view>
+          <view wx:if="{{item.accessLabel}}" class="mc-near">{{item.accessLabel}}</view>
           <view class="mc-desc">{{item.desc}}</view>
         </view>
       </view>

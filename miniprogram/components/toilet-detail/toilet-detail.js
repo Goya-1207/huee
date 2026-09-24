@@ -7,6 +7,12 @@ const POS_META = {
   outside: { label: '站外', icon: 'flag', color: '#ED8B00' },
 };
 
+function areaLine(item) {
+  const outside = item.place === 'outside' || item.area === '站外';
+  if (outside) return item.near ? `站外 · ${item.near}外` : '站外 · 出口信息待核实';
+  return item.area + (item.near ? ' · 靠近' + item.near : '');
+}
+
 Component({
   properties: { rank: { type: Object, value: null } },
   data: {
@@ -30,7 +36,7 @@ Component({
           posLabel: pos.label,
           posIcon: icon(pos.icon, { color: pos.color, size: 18 }),
           desc: item.desc || '暂无更详细的位置说明',
-          areaLine: item.area + (item.near ? ' · 靠近' + item.near : ''),
+          areaLine: areaLine(item),
           walk: item.walk,
           nearIcon: icon('near', { color: onColor, size: 18 }),
           facilities: [

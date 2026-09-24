@@ -61,6 +61,7 @@ Page({
     }));
     const toilets = (st.toilets || []).map((t) => {
       const pos = POS_META[t.place] || POS_META.concourse;
+      const outside = t.place === 'outside' || t.area === '站外';
       return {
         id: t.id,
         title: '厕所 ' + (st.toilets.indexOf(t) + 1),
@@ -69,6 +70,9 @@ Page({
         area: t.area, areaColor: t.area === '付费区' ? '#2EA56A' : '#ED8B00',
         desc: t.desc,
         near: t.near || '',
+        accessLabel: outside
+          ? (t.near ? `出站位置：${t.near}外` : '出口信息待核实')
+          : (t.near ? `靠近 ${t.near}` : ''),
         walkLabel: (t.walk || 0) + ' 分钟步行',
         closed: !!t.closed,
         facilities: [

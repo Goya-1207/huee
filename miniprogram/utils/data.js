@@ -617,6 +617,13 @@ function classify(place, desc) {
   return 'concourse';
 }
 
+// 保留完整出口表达：既支持“2号口”，也支持“北1口”“4、6号口”。
+// 旧逻辑只截取最后一个数字出口，会把“近4、6号口”错误显示成“6号口”。
+function extractExit(desc) {
+  const matched = String(desc || '').match(/(?:[东南西北]\s*)?\d+(?:(?:、|\/|及|和|-)\d+)*号?口/);
+  return matched ? matched[0].replace(/\s/g, '') : '';
+}
+
 Object.keys(RAW_LINES).forEach((lineKey) => {
   const lineId = /^\d+$/.test(lineKey) ? Number(lineKey) : lineKey;
   const order = [];
@@ -632,7 +639,7 @@ Object.keys(RAW_LINES).forEach((lineKey) => {
     const lm = desc.match(/(\d+)号线/);
     if (lm) line = Number(lm[1]);                    // “至8号线站台” → 归到 8 号线站台
 
-    const near = (desc.match(/\d+号口/) || [])[0] || '';
+    const near = extractExit(desc);
     const area = place === 'in' ? '付费区'
                : place === 'outside' ? '站外'
                : place === 'both' ? '站厅'

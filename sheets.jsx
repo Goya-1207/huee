@@ -135,6 +135,10 @@ function FacilityCell({ on, icon, label, sub }) {
 function ToiletDetailSheet({ rank, onClose }) {
   const { toilet: t, station: st, totalMin, travelMin } = rank;
   const pos = POS_META[t.place];
+  const outside = t.place === 'outside' || t.area === '站外';
+  const accessText = outside
+    ? (t.near ? `站外 · ${t.near}外` : '站外 · 出口信息待核实')
+    : `${t.area}${t.near ? ` · 靠近${t.near}` : ''}`;
   return (
     <SheetShell onClose={onClose} title={`${st.name}`}
       kicker="厕所详情" kickerIcon={Ic.drop}>
@@ -175,7 +179,7 @@ function ToiletDetailSheet({ rank, onClose }) {
           <div className="td-row">
             <span className="td-ic">{Ic.near({ width: 18, height: 18 })}</span>
             <div>
-              <div className="td-row-title">{t.area}{t.near ? ` · ${t.near}` : ''}</div>
+              <div className="td-row-title">{accessText}</div>
               <div className="td-row-sub">步行约 {t.walk} 分钟到达</div>
             </div>
           </div>
