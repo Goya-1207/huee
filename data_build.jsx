@@ -7,6 +7,11 @@
   const RAW = window.__metro.RAW_LINES;
   const STMAP = {};     // name -> station
   const LINES = {};     // lineId -> [stationName,...]（有序、去重）
+  const STATION_ID_ALIASES = {
+    '黄陂南路': '一大会址·黄陂南路',
+    '东昌路': '浦东南路',
+    '浦东国际机场': '浦东1号2号航站楼',
+  };
 
   function ensureStation(name) {
     if (!STMAP[name]) STMAP[name] = { id: name, name, lines: [], hub: false, exits: [], toilets: [] };
@@ -45,7 +50,7 @@
       const near = extractExit(desc);
       const area = place === 'in' ? '付费区'
                  : place === 'outside' ? '站外'
-                 : place === 'both' ? '站厅'
+                 : place === 'both' ? '付费区/非付费区'
                  : '非付费区';
       const walk = posType === 'platform' ? 2
                  : place === 'outside' ? 5
@@ -86,8 +91,9 @@
   const STATIONS = Object.values(STMAP);
 
   // ── helpers ──
-  function byId(id) { return STMAP[id] || null; }
-  function linesOf(id) { return STMAP[id] ? STMAP[id].lines : []; }
+  function resolveStationId(id) { return STATION_ID_ALIASES[id] || id; }
+  function byId(id) { return STMAP[resolveStationId(id)] || null; }
+  function linesOf(id) { const st = byId(id); return st ? st.lines : []; }
   function toiletById(tid) {
     for (const st of STATIONS) {
       const t = st.toilets.find((x) => x.id === tid);

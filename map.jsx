@@ -96,8 +96,11 @@ const SUPPLEMENTAL_LINE_COORDS = {
 };
 
 const STATION_ALIASES = {
+  '黄陂南路': '一大会址·黄陂南路',
   '一大会址黄陂南路': '一大会址·黄陂南路',
   '一大会址新天地': '一大会址·新天地',
+  '东昌路': '浦东南路',
+  '浦东国际机场': '浦东1号2号航站楼',
 };
 
 function normalizeStationName(name) {

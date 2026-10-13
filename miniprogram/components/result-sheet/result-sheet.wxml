@@ -21,6 +21,11 @@
           </view>
         </view>
         <view class="tc-stats">
+          <view class="tc-chip tc-pos-chip" style="color:{{primary.posColor}}">
+            <line-badge lines="{{primary.toiletLines}}" size="14" />
+            <image class="tc-chip-ic" src="{{primary.posIconSrc}}" />
+            <text>{{primary.posLabel}}</text>
+          </view>
           <view wx:for="{{primary.chips}}" wx:key="text" class="tc-chip" style="{{item.color ? 'color:' + item.color + ';' : ''}}{{item.bg ? 'background:' + item.bg : ''}}">
             <image wx:if="{{item.iconSrc}}" class="tc-chip-ic" src="{{item.iconSrc}}" />
             <text>{{item.text}}</text>
@@ -47,6 +52,11 @@
           </view>
         </view>
         <view class="tc-stats">
+          <view class="tc-chip tc-pos-chip" style="color:{{item.posColor}}">
+            <line-badge lines="{{item.toiletLines}}" size="14" />
+            <image class="tc-chip-ic" src="{{item.posIconSrc}}" />
+            <text>{{item.posLabel}}</text>
+          </view>
           <view wx:for="{{item.chips}}" wx:for-item="chip" wx:key="text" class="tc-chip" style="{{chip.color ? 'color:' + chip.color + ';' : ''}}{{chip.bg ? 'background:' + chip.bg : ''}}">
             <image wx:if="{{chip.iconSrc}}" class="tc-chip-ic" src="{{chip.iconSrc}}" />
             <text>{{chip.text}}</text>

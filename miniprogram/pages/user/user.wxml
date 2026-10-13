@@ -1,12 +1,161 @@
 <view class="profile-page" wx:if="{{profile}}">
-  <view class="profile-hero"><image class="hero-icon" src="{{appIcon}}" /><view><view class="hero-title">我的偏好</view><view class="hero-sub">让每次推荐更懂你</view></view></view>
-  <view class="profile-card">
-    <view class="card-title">如厕偏好</view>
-    <view class="field-title">优先寻找</view><view class="choice-row"><view wx:for="{{genders}}" wx:key="key" class="choice {{profile.gender===item.key?'on':''}}" data-key="{{item.key}}" bindtap="onGenderTap">{{item.label}}</view></view>
-    <view class="field-title">本次需求</view><view class="choice-row"><view wx:for="{{needs}}" wx:key="key" class="choice {{profile.need===item.key?'on':''}}" data-key="{{item.key}}" bindtap="onNeedTap">{{item.label}}</view></view>
-    <view class="field-title">默认可忍耐时间</view><view class="choice-row"><view wx:for="{{holds}}" wx:key="value" class="choice {{profile.hold===item.value?'on':''}}" data-value="{{item.value}}" bindtap="onHoldTap">{{item.label}}</view></view>
+  <view class="profile-bg">
+    <view class="profile-orb orb-a"></view>
+    <view class="profile-orb orb-b"></view>
+    <view class="profile-orb orb-c"></view>
   </view>
-  <view class="profile-card"><view class="card-title">收藏站点</view><view wx:if="{{favoriteStations.length}}" class="station-list"><view wx:for="{{favoriteStations}}" wx:key="id" class="station-item"><view><text class="station-name">{{item.name}}</text><text class="station-lines">{{item.lineText}}</text></view><view class="remove" data-id="{{item.id}}" bindtap="onRemoveStation">已收藏</view></view></view><view wx:else class="empty">在首页选择站点时，点击收藏即可加入这里。</view></view>
-  <view class="profile-card"><view class="card-title">常用线路</view><view class="line-grid"><view wx:for="{{lineOptions}}" wx:key="key" class="line-choice {{item.on?'on':''}}" style="{{item.on ? ('background:'+item.color+';color:#fff') : ('color:'+item.color)}}" data-key="{{item.key}}" bindtap="onToggleLine">{{item.label}}</view></view></view>
-  <view class="profile-card feedback" bindtap="onFeedback"><view><view class="card-title">信息反馈</view><view class="feedback-sub">上报厕所位置、状态或功能建议</view></view><view class="feedback-arrow">›</view></view>
+
+  <scroll-view class="profile-scroll" scroll-y enhanced show-scrollbar="{{false}}" enable-back-to-top>
+    <view class="profile-content">
+      <view class="page-heading">
+        <view>
+          <view class="page-kicker">PERSONAL SPACE</view>
+          <view class="page-title">我的</view>
+          <view class="page-subtitle">把每一次推荐，调成更适合你的样子</view>
+        </view>
+        <view class="smart-badge">
+          <image src="{{icons.sparkle}}" />
+          <text>智能偏好</text>
+        </view>
+      </view>
+
+      <view class="identity-card glass-panel">
+        <button class="avatar-button" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+          <image class="avatar-image" src="{{avatarSrc}}" mode="aspectFill" />
+          <view class="avatar-edit">+</view>
+        </button>
+        <view class="identity-main">
+          <view class="identity-label">微信资料</view>
+          <input
+            class="nickname-input {{profile.nickname ? '' : 'placeholder-name'}}"
+            type="nickname"
+            value="{{profile.nickname}}"
+            placeholder="点击填写昵称"
+            maxlength="20"
+            confirm-type="done"
+            bindblur="onNicknameBlur"
+            bindconfirm="onNicknameConfirm"
+          />
+          <view class="identity-tip">点击头像或昵称，可使用微信资料快速填写</view>
+        </view>
+        <view class="profile-state {{profileReady ? 'ready' : ''}}">
+          <view class="state-dot"></view>
+          <text>{{profileReady ? '已完善' : '待完善'}}</text>
+        </view>
+      </view>
+
+      <view class="stats-card glass-panel">
+        <view class="stat-item">
+          <text class="stat-number">{{favoriteCount}}</text>
+          <text class="stat-label">收藏站点</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-number">{{favoriteLineCount}}</text>
+          <text class="stat-label">常用线路</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-number">{{feedbackCount}}</text>
+          <text class="stat-label">我的反馈</text>
+        </view>
+      </view>
+
+      <view class="section-heading">
+        <view>
+          <view class="section-title">推荐偏好</view>
+          <view class="section-subtitle">首页会自动使用以下设置</view>
+        </view>
+        <view class="summary-pill">{{currentGenderLabel}} · {{currentNeedLabel}} · {{currentHoldLabel}}</view>
+      </view>
+
+      <view class="preference-card glass-panel">
+        <view class="preference-grid">
+          <view class="preference-block">
+            <view class="preference-label">优先设施</view>
+            <view class="compact-options">
+              <view wx:for="{{genders}}" wx:key="key" class="compact-choice {{profile.gender===item.key?'on':''}}" data-key="{{item.key}}" bindtap="onGenderTap">{{item.label}}</view>
+            </view>
+          </view>
+          <view class="preference-block need-block">
+            <view class="preference-label">默认需求</view>
+            <view class="compact-options two">
+              <view wx:for="{{needs}}" wx:key="key" class="compact-choice {{profile.need===item.key?'on':''}}" data-key="{{item.key}}" bindtap="onNeedTap">{{item.label}}</view>
+            </view>
+          </view>
+        </view>
+        <view class="preference-separator"></view>
+        <view class="hold-heading">
+          <view>
+            <view class="preference-label">默认可忍耐时间</view>
+            <view class="hold-hint">影响推荐距离和中途下车策略</view>
+          </view>
+          <image src="{{icons.clock}}" />
+        </view>
+        <view class="hold-track">
+          <view wx:for="{{holds}}" wx:key="value" class="hold-choice {{profile.hold===item.value?'on':''}}" data-value="{{item.value}}" bindtap="onHoldTap">
+            <view class="hold-dot"></view>
+            <text>{{item.label}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section-heading collection-heading">
+        <view>
+          <view class="section-title">我的地铁</view>
+          <view class="section-subtitle">收藏会优先出现在站点搜索中</view>
+        </view>
+      </view>
+
+      <view class="collection-card glass-panel">
+        <view class="collection-title-row">
+          <view class="collection-title"><image src="{{icons.pin}}" /><text>收藏站点</text></view>
+          <text class="collection-count">{{favoriteCount}} 个</text>
+        </view>
+        <scroll-view wx:if="{{favoriteStations.length}}" class="station-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+          <view class="station-strip">
+            <view wx:for="{{favoriteStations}}" wx:key="id" class="station-card">
+              <view class="station-card-top">
+                <view class="station-name">{{item.name}}</view>
+                <view class="station-remove" data-id="{{item.id}}" catchtap="onRemoveStation">×</view>
+              </view>
+              <view class="station-lines">{{item.lineText}}</view>
+              <view class="station-badges">
+                <view wx:for="{{item.lines}}" wx:for-item="line" wx:key="key" class="station-line-dot" style="background:{{line.color}}">{{line.key}}</view>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+        <view wx:else class="collection-empty" bindtap="onGoHome">
+          <view class="empty-mark">＋</view>
+          <view><view class="empty-title">还没有收藏站点</view><view class="empty-sub">去首页搜索站点并点亮收藏</view></view>
+          <image src="{{icons.arrow}}" />
+        </view>
+
+        <view class="collection-divider"></view>
+        <view class="collection-title-row line-title-row">
+          <view class="collection-title"><image src="{{icons.map}}" /><text>常用线路</text></view>
+          <text class="collection-count">点按即可切换</text>
+        </view>
+        <view class="line-grid">
+          <view wx:for="{{lineOptions}}" wx:key="key" class="line-choice {{item.on?'on':''}}" style="{{item.on ? ('border-color:'+item.color+';color:'+item.color+';background:'+item.color+'1A') : ''}}" data-key="{{item.key}}" bindtap="onToggleLine">
+            <view class="line-dot" style="background:{{item.color}}"></view>
+            <text>{{item.label}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="feedback-card glass-panel" bindtap="onFeedback">
+        <view class="feedback-icon">!</view>
+        <view class="feedback-main">
+          <view class="feedback-title">帮助我们补全厕所信息</view>
+          <view class="feedback-sub">位置错误、暂停使用或功能建议，都可以告诉我们</view>
+        </view>
+        <image class="feedback-arrow" src="{{icons.arrow}}" />
+      </view>
+
+      <view class="privacy-note">头像与昵称由你主动选择，仅用于个人资料展示；偏好数据保存在当前设备。</view>
+      <view class="bottom-safe"></view>
+    </view>
+  </scroll-view>
 </view>

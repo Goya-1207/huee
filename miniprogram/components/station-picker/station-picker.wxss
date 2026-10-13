@@ -40,10 +40,11 @@
 .nearby-panel { margin: 0 2px 12px; border: 1px solid rgba(0,133,202,0.15); border-radius: 14px; overflow: hidden; background: rgba(0,133,202,0.035); }
 .nearby-panel .picker-section { padding: 12px 12px 5px; }
 .nearby-panel .picker-row { padding-left: 12px; padding-right: 12px; }
-.picker-row { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 14px 12px; border-bottom: 0.5px solid rgba(60,60,67,0.08); border-radius: 12px; }
+.picker-row { box-sizing: border-box; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 12px; border-bottom: 0.5px solid rgba(60,60,67,0.08); border-radius: 12px; }
 .picker-row.on { background: var(--brand-tint); }
-.pr-name { font-size: 17px; font-weight: 600; color: var(--ink-1); display: flex; align-items: center; gap: 8px; }
-.pr-right { display: inline-flex; align-items: center; gap: 8px; }
+.pr-name { min-width: 0; flex: 1; font-size: 17px; font-weight: 600; color: var(--ink-1); display: flex; align-items: center; gap: 8px; }
+.pr-name text:first-of-type { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-right { min-width: 0; flex: 0 1 auto; display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .fav-btn { width: 34rpx; height: 34rpx; line-height: 34rpx; text-align: center; border-radius: 50%; color: #9aa4b2; background: rgba(120,130,145,0.10); font-size: 28rpx; }
 .fav-btn.on { color: #D9A300; background: rgba(217,163,0,0.12); }
 .hub-tag { font-size: 10px; font-weight: 700; color: var(--brand); background: var(--brand-tint); padding: 2px 6px; border-radius: 6px; }

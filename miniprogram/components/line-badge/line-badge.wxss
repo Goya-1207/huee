@@ -1,4 +1,5 @@
 .lb { display: inline-flex; gap: 4px; }
+.lb-wrap { max-width: 240rpx; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
 .lb-dot {
   border-radius: 50%;
   color: #fff;

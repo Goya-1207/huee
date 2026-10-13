@@ -61,6 +61,7 @@ function ToiletCard({ rank, gender, primary, onOpen }) {
       </div>
       <div className="tc-stats">
         <span className="tc-chip" style={{ color: pos.color }}>
+          <LineBadges lines={t.lines && t.lines.length ? t.lines : [t.line]} size={14} />
           {pos.icon({ width: 14, height: 14 })}{pos.label}
         </span>
         {t.place === 'concourse' && (

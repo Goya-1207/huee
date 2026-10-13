@@ -26,6 +26,7 @@
   display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600;
   color: var(--ink-2); background: rgba(120,120,128,0.1); padding: 5px 9px; border-radius: 9px;
 }
+.tc-pos-chip { padding-left: 6px; }
 .tc-chip-ic { width: 13px; height: 13px; }
 .alt-label { font-size: 13px; font-weight: 700; color: var(--ink-3); margin: 8px 4px 0; }
 .empty-hint { font-size: 14px; color: var(--ink-3); text-align: center; padding: 24px; }

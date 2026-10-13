@@ -53,6 +53,10 @@ Component({
         key: (plan ? plan.id : 'none') + '|' + t.id,
         name: st.name,
         lines: st.lines,
+        toiletLines: t.lines && t.lines.length ? t.lines : [t.line],
+        posLabel: pos.label,
+        posColor: pos.color,
+        posIconSrc: icon(pos.icon, { color: pos.color, size: 13 }),
         loc: toiletLocBrief(t),
         totalMin: Math.round(rank.totalMin),
         routeTitle: plan ? plan.title : '',
@@ -60,12 +64,11 @@ Component({
         routeTransferText: plan ? plan.transferText : '',
         routeMetrics: plan ? `${plan.transferCount} 次换乘 · 全程约 ${plan.minutes} 分钟` : '',
         routeSeatText: plan ? plan.seatText : '',
-        chips: this._buildChips(rank, t, pos),
+        chips: this._buildChips(rank, t),
       };
     },
-    _buildChips(rank, t, pos) {
+    _buildChips(rank, t) {
       const chips = [];
-      chips.push({ text: pos.label, color: pos.color, iconSrc: icon(pos.icon, { color: pos.color, size: 13 }) });
       if (t.place === 'concourse') {
         if (t.area === '付费区') chips.push({ text: t.area, color: '#2EA56A', bg: 'rgba(46,165,106,0.10)' });
         else chips.push({ text: t.area, color: '#ED8B00', bg: 'rgba(237,139,0,0.08)' });

@@ -1,17 +1,14 @@
 <!--pages/map/map.wxml-->
 <view class="map-page">
-  <map
-    class="map"
-    longitude="{{center.longitude}}"
-    latitude="{{center.latitude}}"
-    scale="{{scale}}"
-    polyline="{{mapPolylines}}"
-    enable-poi="{{true}}"
-    bindpoitap="onPoiTap"
-    bindregionchange="onRegionChange"
-    show-location="{{false}}"
-    enable-overlooking="{{false}}"
-  ></map>
+  <scroll-view class="official-map-viewport" scroll-x scroll-y enhanced show-scrollbar="{{false}}" bindtouchstart="onMapTouchStart" bindtouchmove="onMapTouchMove" bindtouchend="onMapTouchEnd" bindtouchcancel="onMapTouchEnd">
+    <view class="official-map-stage" style="width:{{mapWidth}}rpx;height:{{mapHeight}}rpx;" bindtap="onMapTap">
+      <image class="official-map-image" src="/assets/shmetro-official-map.png" mode="scaleToFill" />
+      <button wx:for="{{officialStations}}" wx:key="id" class="station-hotspot" style="{{item.style}}" data-id="{{item.stationId}}" catchtap="onStationTap" aria-label="{{item.name}}"></button>
+    </view>
+  </scroll-view>
+  <view class="map-toolbar">
+    <view class="map-zoom"><view class="map-zoom-in" catchtap="zoomIn">＋</view><view class="map-zoom-out" catchtap="zoomOut">−</view></view>
+  </view>
 
   <view wx:if="{{unmappedStationCount}}" class="map-notice">
     {{unmappedStationCount}} 个站点暂缺地图坐标，可在首页手动选择

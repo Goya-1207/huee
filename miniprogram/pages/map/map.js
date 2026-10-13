@@ -1,6 +1,6 @@
-// pages/map/map.js — 上海地铁图（内置 <map> 组件 + 预生成的 polyline/markers）
-const geo = require('../../utils/metro-geo.js');
-const { byId, STATIONS, LINE_COLORS, lineLabel } = require('../../utils/data.js');
+// pages/map/map.js — 官方线网图 + 项目厕所预览
+const officialMap = require('../../utils/official-metro-map.js');
+const { byId, LINE_COLORS, lineLabel } = require('../../utils/data.js');
 const { getProfile, toggleFavoriteStation } = require('../../utils/profile.js');
 
 const POS_META = {
@@ -8,17 +8,28 @@ const POS_META = {
   concourse: { label: '站厅层', color: '#0085CA' },
   outside: { label: '站外', color: '#ED8B00' },
 };
-const OVERVIEW_SCALE = 13;
-const overviewPolylines = geo.polylines.map((line) => Object.assign({}, line, { width: 3 }));
+const MAP_ASPECT = officialMap.height / officialMap.width;
+const MAP_BASE_WIDTH = 1100;
+function buildMapView(scale) {
+  const mapWidth = Math.round(MAP_BASE_WIDTH * scale);
+  return { mapScale: scale, mapWidth, mapHeight: Math.round(mapWidth * MAP_ASPECT) };
+}
+function touchDistance(touches) {
+  const [first, second] = touches || [];
+  if (!first || !second) return 0;
+  return Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY);
+}
+const officialStations = officialMap.stations.map((station) => ({
+  ...station,
+  style: `left:${station.x * 100}%;top:${station.y * 100}%;`,
+}));
 
 Page({
   data: {
-    center: geo.center,
-    scale: 11,
-    // 腾讯底图在低缩放时不一定展示地铁；仅概览层补充真实线路，放大后立即隐藏。
-    mapPolylines: overviewPolylines,
+    officialStations,
+    ...buildMapView(1),
     selectedSt: null,
-    unmappedStationCount: (geo.unmappedStationIds || []).length,
+    unmappedStationCount: 0,
   },
 
   onShow() {
@@ -26,25 +37,33 @@ Page({
     if (tabBar) tabBar.setData({ selected: 1 });
   },
 
-  onRegionChange(e) {
-    if (e.type !== 'end' || !e.detail || !Number.isFinite(e.detail.scale)) return;
-    const scale = e.detail.scale;
-    const showOverview = scale < OVERVIEW_SCALE;
-    const currentlyShown = this.data.mapPolylines.length > 0;
-    if (showOverview === currentlyShown && scale === this.data.scale) return;
-    this.setData({
-      scale,
-      mapPolylines: showOverview ? overviewPolylines : [],
-    });
+  zoomIn() { this.setData(buildMapView(Math.min(2.1, this.data.mapScale + 0.2))); },
+  zoomOut() { this.setData(buildMapView(Math.max(0.8, this.data.mapScale - 0.2))); },
+  onMapTouchStart(e) {
+    if ((e.touches || []).length < 2) return;
+    const distance = touchDistance(e.touches);
+    if (distance) this._pinch = { distance, scale: this.data.mapScale };
   },
-
-  // 原生底图 POI 名称通常带“地铁站/站”后缀，规范化后与本地业务站点匹配。
-  onPoiTap(e) {
-    const poiName = e.detail && (e.detail.name || e.detail.poiName || '');
-    const normalized = String(poiName).replace(/^上海地铁/, '').replace(/(?:地铁)?站$/, '').replace(/[·・]/g, '');
-    const st = byId(poiName) || byId(normalized) || STATIONS.find((item) => item.name.replace(/[·・]/g, '') === normalized);
-    if (!st) return;
-    this.setData({ selectedSt: this._buildCard(st) });
+  onMapTouchMove(e) {
+    if (!this._pinch || (e.touches || []).length < 2) return;
+    const distance = touchDistance(e.touches);
+    if (!distance) return;
+    const nextScale = Math.max(0.8, Math.min(2.1, this._pinch.scale * distance / this._pinch.distance));
+    if (Math.abs(nextScale - this.data.mapScale) > 0.01) this.setData(buildMapView(nextScale));
+  },
+  onMapTouchEnd(e) {
+    if ((e.touches || []).length >= 2) return;
+    if (this._pinch) this._suppressMapTapUntil = Date.now() + 250;
+    this._pinch = null;
+  },
+  onMapTap() {
+    if (Date.now() < (this._suppressMapTapUntil || 0)) return;
+    if (this.data.selectedSt) this.closeCard();
+  },
+  // 每个热区映射至本地业务站，点击后复用既有厕所半屏预览。
+  onStationTap(e) {
+    const st = byId(e.currentTarget.dataset.id);
+    if (st) this.setData({ selectedSt: this._buildCard(st) });
   },
 
   closeCard() { this.setData({ selectedSt: null }); },

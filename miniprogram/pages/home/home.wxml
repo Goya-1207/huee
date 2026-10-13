@@ -1,11 +1,9 @@
 <!--pages/home/home.wxml — 首页-->
 <view class="app">
-  <view class="bg">
-    <view class="orb o1"></view>
-    <view class="orb o2"></view>
-    <view class="orb o3"></view>
-    <view class="orb o4"></view>
-    <view class="orb o5"></view>
+  <view class="home-bg">
+    <view class="home-orb home-orb-a"></view>
+    <view class="home-orb home-orb-b"></view>
+    <view class="home-orb home-orb-c"></view>
   </view>
 
   <scroll-view class="scroll" scroll-y="{{!activeSheet}}" enhanced bounces="{{false}}">

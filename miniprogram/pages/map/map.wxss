@@ -1,5 +1,13 @@
 .map-page { position: relative; width: 100%; height: 100vh; overflow: hidden; }
-.map { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; }
+.official-map-viewport { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; background: #f5f8fa; }
+.official-map-stage { position: relative; min-width: 100%; min-height: 100%; }
+.official-map-image { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; }
+.station-hotspot { position: absolute; z-index: 2; width: 10rpx; height: 10rpx; min-width: 10rpx; padding: 0; margin: -5rpx 0 0 -5rpx; border: 0; border-radius: 50%; background: transparent; box-shadow: none; opacity: 0; }
+.station-hotspot::after { border: 0; }
+.map-toolbar { position: absolute; z-index: 20; top: calc(env(safe-area-inset-top) + 136rpx); right: 24rpx; }
+.map-zoom { display: flex; flex-direction: column; overflow: hidden; border-radius: 16rpx; background: rgba(255,255,255,.94); box-shadow: 0 4rpx 16rpx rgba(33,52,72,.12); }
+.map-zoom view { width: 64rpx; height: 64rpx; line-height: 60rpx; text-align: center; color: #0085CA; font-size: 42rpx; font-weight: 500; }
+.map-zoom-out { border-top: 1rpx solid rgba(33,52,72,.12); }
 .map-notice {
   position: absolute; z-index: 5; top: 16px; left: 12px; right: 12px;
   padding: 8px 12px; border-radius: 10px;

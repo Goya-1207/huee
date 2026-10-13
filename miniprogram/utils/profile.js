@@ -1,6 +1,8 @@
 // 本地个人资料与收藏。当前项目离线运行，因此所有资料仅保存在用户设备的微信存储中。
 const KEY = 'userProfile';
 const DEFAULT_PROFILE = {
+  nickname: '',
+  avatarUrl: '',
   gender: 'm',
   need: 'pee',
   hold: 8,
@@ -12,6 +14,8 @@ const DEFAULT_PROFILE = {
 
 function normalize(raw) {
   const p = Object.assign({}, DEFAULT_PROFILE, raw || {});
+  p.nickname = typeof p.nickname === 'string' ? p.nickname.trim().slice(0, 32) : '';
+  p.avatarUrl = typeof p.avatarUrl === 'string' ? p.avatarUrl : '';
   p.favoriteStations = Array.isArray(p.favoriteStations) ? [...new Set(p.favoriteStations)] : [];
   p.favoriteLines = Array.isArray(p.favoriteLines) ? [...new Set(p.favoriteLines)] : [];
   p.feedbacks = Array.isArray(p.feedbacks) ? p.feedbacks : [];

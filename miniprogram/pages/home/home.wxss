@@ -1,5 +1,10 @@
 /* pages/home/home.wxss */
-.app { position: relative; height: 100vh; overflow: hidden; }
+.app { position: relative; height: 100vh; overflow: hidden; background: #eaf2f4; }
+.home-bg { position: absolute; inset: 0; overflow: hidden; background: linear-gradient(165deg, #e9f5f5 0%, #edf0f8 52%, #f7edf3 100%); }
+.home-orb { position: absolute; border-radius: 50%; filter: blur(90rpx); opacity: .42; }
+.home-orb-a { width: 430rpx; height: 430rpx; left: -180rpx; top: 90rpx; background: #6bc9dc; }
+.home-orb-b { width: 390rpx; height: 390rpx; right: -150rpx; top: 480rpx; background: #d7b4e9; opacity: .36; }
+.home-orb-c { width: 440rpx; height: 440rpx; left: 80rpx; bottom: 40rpx; background: #f4d98d; opacity: .3; }
 .scroll { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
 .home-pad { padding-top: calc(env(safe-area-inset-top) + 28px); }
 

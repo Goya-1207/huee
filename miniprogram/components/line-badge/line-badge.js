@@ -4,6 +4,8 @@ Component({
   properties: {
     lines: { type: Array, value: [] },
     size: { type: Number, value: 18 },
+    // 在站点列表中允许换乘线路标志在窄屏自动换行。
+    wrap: { type: Boolean, value: false },
   },
   data: { dots: [] },
   observers: {
